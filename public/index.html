@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Albaway 🇦🇱 — Kovojazhim ndërkombëtar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-trail" id="cursor-trail"></div>
+
+<!-- AURORA -->
+<div class="aurora" aria-hidden="true">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="orb orb4"></div>
+</div>
+<div class="noise" aria-hidden="true"></div>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="nav-inner">
+    <a class="logo" onclick="navigate('home')" href="#">
+      <span class="logo-flag">🇦🇱</span>
+      <span class="logo-text">Alba<strong>way</strong></span>
+    </a>
+    <nav class="nav-links" id="nav-links">
+      <a onclick="navigate('search')" href="#">Kërko udëtim</a>
+      <a href="/about.html">Rreth nesh</a>
+      <a href="/faq.html">FAQ</a>
+      <a onclick="navigate('publish')" href="#" class="nav-publish">+ Publiko</a>
+    </nav>
+    <div class="nav-right">
+      <div id="auth-buttons">
+        <button onclick="openModal('login')"    class="btn-nav-ghost">Hyr</button>
+        <button onclick="openModal('register')" class="btn-nav-red">Regjistrohu</button>
+      </div>
+      <div id="user-menu" class="hidden">
+        <button onclick="navigate('dashboard')" class="user-pill" id="user-pill">
+          <span class="user-av" id="user-initials"></span>
+          <span id="user-name-nav"></span>
+        </button>
+        <button onclick="logout()" class="btn-nav-ghost">Dil</button>
+      </div>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()">☰</button>
+    </div>
+  </div>
+</header>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav hidden" id="mobile-nav">
+  <a onclick="navigate('search');toggleMobileNav()" href="#">🔍 Kërko udëtim</a>
+  <a onclick="navigate('publish');toggleMobileNav()" href="#">🚗 Publiko udëtim</a>
+  <a onclick="navigate('dashboard');toggleMobileNav()" href="#">👤 Profili im</a>
+  <div class="mobile-auth" id="mobile-auth">
+    <button onclick="openModal('login');toggleMobileNav()">Hyr</button>
+    <button onclick="openModal('register');toggleMobileNav()">Regjistrohu</button>
+  </div>
+</div>
+
+<!-- APP -->
+<main id="app"></main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo"><span class="logo-flag">🇦🇱</span><span class="logo-text">Alba<strong>way</strong></span></div>
+      <p>Kovojazhim shqiptar — i sigurt, i lirë, i shpejtë.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Shërbimi</h4>
+      <a href="/faq.html">❓ Pyetje të shpeshta (FAQ)</a>
+      <a href="/legal.html">📋 Termat & Kushtet</a>
+      <a href="/legal.html" onclick="setTimeout(()=>showDoc?.('privacy'),100)">🔒 Privatësia (GDPR)</a>
+      <a href="/legal.html" onclick="setTimeout(()=>showDoc?.('safety'),100)">🛡️ Siguria</a>
+      <a href="mailto:support@Albaway.com">📧 Kontakto</a>
+    </div>
+    <div class="footer-links">
+      <h4>Destinacionet</h4>
+      <a href="#" onclick="quickSearch('Zürich','Prishtinë')">🇨🇭 Zürich → Prishtinë</a>
+      <a href="#" onclick="quickSearch('Stuttgart','Tirana')">🇩🇪 Stuttgart → Tirana</a>
+      <a href="#" onclick="quickSearch('Wien','Shkodër')">🇦🇹 Wien → Shkodër</a>
+      <a href="#" onclick="quickSearch('München','Shkup')">🇩🇪 München → Shkup</a>
+      <a href="#" onclick="quickSearch('London','Prishtinë')">🇬🇧 London → Prishtinë</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Albaway SRL · Zürich, Zvicër &nbsp;·&nbsp;
+    <a href="/legal.html" style="color:rgba(255,255,255,.3)">Termat</a> &nbsp;·&nbsp;
+    <a href="/legal.html" style="color:rgba(255,255,255,.3)">Privatësia</a> &nbsp;·&nbsp;
+    <a href="/faq.html" style="color:rgba(255,255,255,.3)">FAQ</a> &nbsp;·&nbsp;
+    Pagesat sigurohen nga <strong style="color:rgba(255,255,255,.4)">Stripe</strong> 🔒
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal(event)">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- NOTIF -->
+<div id="notif-banner" class="notif-banner hidden"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

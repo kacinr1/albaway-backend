@@ -1,0 +1,363 @@
+﻿<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FAQ — Albaway</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.faq-hero{padding:120px 32px 60px;text-align:center;position:relative;z-index:2}
+.faq-wrap{max-width:800px;margin:0 auto;padding:0 32px 100px;position:relative;z-index:2}
+.faq-cat{margin-bottom:48px}
+.faq-cat-title{
+  font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;
+  color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2px;
+  margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.faq-item{
+  border:1px solid rgba(255,255,255,.07);border-radius:14px;
+  margin-bottom:10px;overflow:hidden;background:rgba(255,255,255,.04);
+  backdrop-filter:blur(10px);transition:border-color .2s;
+}
+.faq-item:hover{border-color:rgba(255,255,255,.12)}
+.faq-q{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;font-size:.95rem;font-weight:600;color:#fff;
+  cursor:pointer;gap:16px;text-align:left;
+  background:none;border:none;font-family:inherit;
+  transition:background .2s;
+}
+.faq-q:hover{background:rgba(255,255,255,.03)}
+.faq-icon{
+  width:28px;height:28px;border-radius:50%;background:rgba(228,30,32,.15);
+  border:1px solid rgba(228,30,32,.25);color:#ff7b7b;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;transition:all .25s;font-style:normal;
+}
+.faq-item.open .faq-icon{background:rgba(228,30,32,.3);transform:rotate(45deg)}
+.faq-a{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s cubic-bezier(.4,0,.2,1),padding .3s;
+  padding:0 20px;
+}
+.faq-item.open .faq-a{max-height:400px;padding:0 20px 18px}
+.faq-a p{font-size:.9rem;color:rgba(255,255,255,.55);line-height:1.75}
+.faq-a ul{margin:8px 0 0 16px}
+.faq-a ul li{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:4px}
+.faq-a a{color:#60a5fa;text-decoration:underline}
+
+.price-table{width:100%;border-collapse:collapse;margin-top:12px}
+.price-table th{background:rgba(0,61,130,.3);padding:10px 14px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)}
+.price-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-size:.88rem;color:rgba(255,255,255,.65)}
+.price-table tr:last-child td{border-bottom:none}
+.price-table td strong{color:#fff}
+</style>
+</head>
+<body>
+<div class="aurora"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+<div class="noise"></div>
+
+<header id="header">
+  <div class="nav-inner">
+    <a class="logo" href="/">🇦🇱 Alba<strong style="color:#fff">Way</strong></a>
+    <div class="nav-right">
+      <a href="/" class="btn-nav-ghost">← Kthehu</a>
+    </div>
+  </div>
+</header>
+
+<div class="faq-hero">
+  <div class="section-tag">Pyetje të shpeshta</div>
+  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:800;margin-bottom:16px">Si funksionon Albaway?</h1>
+  <p style="color:rgba(255,255,255,.45);font-size:1.05rem;max-width:520px;margin:0 auto">Gjithçka që duhet të dini për kovojazhimin shqiptar.</p>
+</div>
+
+<div class="faq-wrap">
+
+  <!-- GENERAL -->
+  <div class="faq-cat">
+    <div class="faq-cat-title">🚗 Përgjithshme</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Çfarë është Albaway dhe si funksionon?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a"><p>Albaway është platforma e parë shqipfolëse e kovojazhimit ndërkombëtar. Shoferi publikon udëtimin e tij (p.sh. Zürich → Prishtinë) me çmimin, datën dhe vendet e disponueshme. Pasagjerët kërkojnë, rezervojnë dhe udhëtojnë bashkë. Kosto e karburantit ndahet mes të gjithëve — kursehet para, reduktohet CO₂, krijohen miqësi.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>A është i sigurt Albaway?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Po. Ne garantojmë sigurinë përmes:</p>
+        <ul>
+          <li>✅ Verifikimit të llogarisë me email</li>
+          <li>✅ Sistemit të vlerësimeve nga udhëtarët e mëparshëm</li>
+          <li>✅ Profilit publik të çdo shoferi me historikun e udëtimeve</li>
+          <li>✅ Mundësisë për të raportuar çdo problem</li>
+          <li>✅ Ekipit tonë të sigurisë 24/7</li>
+        </ul>
+        <p style="margin-top:8px">Rekomandojmë gjithmonë të kontrolloni vlerësimet e shoferit dhe të lajmërojnë dikë për planin e udhëtimit.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Cilat rrugë mbuloni?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Mbulojmë të gjitha rrugët kryesore të diasporës shqiptare:</p>
+        <ul>
+          <li>🇨🇭 Zvicër → Kosovë / Shqipëri (Zürich, Bern, Geneva, Basel)</li>
+          <li>🇩🇪 Gjermani → Kosovë / Shqipëri (Stuttgart, München, Frankfurt, Berlin)</li>
+          <li>🇦🇹 Austri → Shqipëri / Maqedoni (Wien, Graz, Salzburg)</li>
+          <li>🇬🇧 Britani → Kosovë (London, Birmingham)</li>
+          <li>🇫🇷 Francë → Shqipëri (Paris, Lyon)</li>
+          <li>🇧🇪 Belgjikë → Kosovë / Shqipëri (Bruxelles)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASAGJER -->
+  <div class="faq-cat">
+    <div class="faq-cat-title">🎒 Për pasagjerët</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Si rezervoj një vend?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <ul>
+          <li><strong>1.</strong> Kërko udëtimin (qyteti i nisjes + destinacioni + data)</li>
+          <li><strong>2.</strong> Zgjidh shoferin — shiko vlerësimet, llojin e makinës dhe çmimin</li>
+          <li><strong>3.</strong> Kliko "Kërko vendin" dhe dërgo mesazh opsional te shoferi</li>
+          <li><strong>4.</strong> Prit konfirmimin — shoferi pranon ose refuzon brenda 24 orësh</li>
+          <li><strong>5.</strong> Pasi pranohet, merr numrin e shoferit dhe organizoni takimin</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Si paguaj? A është i sigurt pagesa?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Pagesa bëhet <strong>100% online</strong> përmes Stripe — platforma më e sigurt e pagesave në botë. Karta juaj mbrohet me enkriptim AES-256.</p>
+        <ul>
+          <li>💳 Kartë kredit / debit (Visa, Mastercard, AmEx)</li>
+          <li>📱 Apple Pay / Google Pay</li>
+          <li>🏦 SEPA Direct Debit (Evropë)</li>
+        </ul>
+        <p style="margin-top:8px"><strong>Mbrojtja e blerësit:</strong> Paratë mbahen nga Albaway deri sa udëtimi të konfirmohet si i kryer. Nëse shoferi anulon, rimbursim i plotë automatik.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Çfarë ndodh nëse shoferi anulon?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Nëse shoferi anulon <strong>24+ orë para nisjes</strong>: rimbursim i plotë (100%) brenda 3-5 ditësh pune.</p>
+        <p style="margin-top:6px">Nëse shoferi anulon <strong>më pak se 24 orë para nisjes</strong>: rimbursim i plotë + kompensim 10% për shqetësimin.</p>
+        <p style="margin-top:6px">Ne ju ndihmojmë gjithmonë të gjeni udëtim alternativ.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Sa bagazh mund të marr?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Çdo shofer specifikon nëse lejohet bagazhi. Zakonisht:</p>
+        <ul>
+          <li>🧳 1 valixhe e mesme (ose ekuivalente) + çantë mbi supe — <strong>falas</strong></li>
+          <li>🛄 Bagazh shtesë — diskutoni me shoferin drejtpërdrejt</li>
+        </ul>
+        <p style="margin-top:6px">Shihni ikonën 🧳 në kartelën e udëtimit për të parë nëse bagazhi lejohet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOFER -->
+  <div class="faq-cat">
+    <div class="faq-cat-title">🚗 Për shoferët</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Si publikoj udëtimin tim?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <ul>
+          <li><strong>1.</strong> Krijo llogarinë ose hyr</li>
+          <li><strong>2.</strong> Kliko "+ Publiko udëtim"</li>
+          <li><strong>3.</strong> Plotëso: Nga → Drejt, Data, Ora, Çmimi, Lloji i makinës</li>
+          <li><strong>4.</strong> Cakto numrin e vendeve të disponueshme</li>
+          <li><strong>5.</strong> Pret kërkesat — prano ose refuzo sipas dëshirës</li>
+          <li><strong>6.</strong> Merr pagesën automatikisht pas udëtimit</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Si e caktoj çmimin e duhur?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Ja rekomandimet tona bazuar në rrugët kryesore:</p>
+        <table class="price-table">
+          <tr><th>Rruga</th><th>Çmimi rekomandues</th><th>Kohëzgjatja</th></tr>
+          <tr><td>Zürich → Prishtinë</td><td><strong>75–90€</strong></td><td>~16 orë</td></tr>
+          <tr><td>Stuttgart → Tirana</td><td><strong>65–80€</strong></td><td>~17 orë</td></tr>
+          <tr><td>Wien → Shkodër</td><td><strong>55–70€</strong></td><td>~12 orë</td></tr>
+          <tr><td>München → Shkup</td><td><strong>60–75€</strong></td><td>~14 orë</td></tr>
+          <tr><td>Frankfurt → Prishtinë</td><td><strong>80–95€</strong></td><td>~18 orë</td></tr>
+          <tr><td>London → Prishtinë</td><td><strong>120–150€</strong></td><td>Ferry + rrugë</td></tr>
+        </table>
+        <p style="margin-top:8px">Çmimi mbështjell vetëm <strong>koston e karburantit + autostradës</strong>, ndarë mes pasagjerëve. Nuk duhet të jetë fitim!</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Kur dhe si marr pagesën?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Pagesa lëshohet <strong>24 orë pas përfundimit të udëtimit</strong>, pasi pasagjeri konfirmon mbërritjen. Transferi bëhet drejtpërdrejt në llogarinë tuaj bankare përmes Stripe Connect.</p>
+        <p style="margin-top:6px">Tarifat: Albaway mban <strong>8% komision</strong> nga çmimi total. Ju merrni 92%.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>A jam i mbuluar nga sigurimi gjatë kovojazhimit?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Çdo shofer duhet të ketë sigurimin e detyrueshëm të mjetit (RC Auto) aktiv — ky mbron pasagjerët në rast aksidenti.</p>
+        <p style="margin-top:6px"><strong>⚠️ E rëndësishme:</strong> Disa polica sigurimi mund të përjashtojnë kovojazhimin me kompensim financiar. Kontrolloni me kompaninë tuaj të sigurimit përpara se të publikoni.</p>
+        <p style="margin-top:6px">Albaway ofron gjithashtu sigurimin shtesë <strong>SafeRide+</strong> (duke ardhur) — €2/udëtim, mbulim shtesë €50,000.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGESA -->
+  <div class="faq-cat">
+    <div class="faq-cat-title">💳 Pagesat & Rimbursimi</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Politika e anulimit dhe rimbursimit</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <table class="price-table">
+          <tr><th>Koha e anulimit</th><th>Rimbursimi</th></tr>
+          <tr><td>48+ orë para nisjes</td><td><strong style="color:#34d399">100% rimbursim</strong></td></tr>
+          <tr><td>24–48 orë para nisjes</td><td><strong style="color:#fbbf24">70% rimbursim</strong></td></tr>
+          <tr><td>Më pak se 24 orë</td><td><strong style="color:#ff7b7b">Pa rimbursim</strong></td></tr>
+          <tr><td>Anulim nga shoferi (çdo kohë)</td><td><strong style="color:#34d399">100% + €5 kompensim</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Sa komision merr platforma?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Albaway merr <strong>8% komision</strong> nga çmimi total (paguhet nga pasagjeri si tarifë shërbimi). Shoferi merr 100% të çmimit që ka caktuar.</p>
+        <p style="margin-top:6px">Shembull: Çmimi i shoferit = <strong>80€</strong> → Pasagjeri paguan <strong>86.40€</strong> (80€ + 8% = 6.40€ komision). Shoferi merr <strong>80€</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEGAL -->
+  <div class="faq-cat">
+    <div class="faq-cat-title">⚖️ Çështje ligjore</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>A është kovojazhimi legal në Evropë?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Po, kovojazhimi (ride-sharing) është <strong>100% legal</strong> në Zvicër, Gjermani, Austri, Britani dhe të gjitha vendet e BE-së, me kushtin e vetëm që shoferi <strong>nuk bën fitim</strong> — ndan vetëm koston e karburantit dhe autostradave.</p>
+        <p style="margin-top:6px">Albaway siguron që çmimet e rekomanduara janë gjithmonë brenda kufijve ligjorë të çdo vendi.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Si mbrohen të dhënat e mia? (GDPR)</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Albaway është plotësisht konform me <strong>Rregulloren GDPR</strong> të Bashkimit Evropian:</p>
+        <ul>
+          <li>🔒 Të dhënat enkriptohen me AES-256 gjatë ruajtjes</li>
+          <li>🔐 Komunikimi mbrojtur me TLS 1.3 (HTTPS)</li>
+          <li>🗑️ Mund të kërkoni fshirjen e llogarisë në çdo kohë</li>
+          <li>📤 Mund të eksportoni të gjitha të dhënat tuaja</li>
+          <li>🚫 Nuk shesim të dhënat tuaja palëve të treta</li>
+        </ul>
+        <p style="margin-top:8px">Shihni <a href="/legal.html">Politikën e Privatësisë</a> për detaje të plota.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="tog(this)">
+        <span>Çfarë ndodh nëse kam problem me shoferin/pasagjerin?</span>
+        <i class="faq-icon">+</i>
+      </button>
+      <div class="faq-a">
+        <p>Na kontaktoni menjëherë:</p>
+        <ul>
+          <li>📧 Email: <strong>support@Albaway.com</strong></li>
+          <li>📱 WhatsApp: <strong>+41 76 000 00 00</strong></li>
+          <li>🕐 Disponueshëm: 07:00–23:00 çdo ditë</li>
+        </ul>
+        <p style="margin-top:6px">Gjithashtu mund të raportoni çdo problem nga profili i tij/saj brenda aplikacionit. Ekipi ynë përgjigjet brenda 2 orësh.</p>
+        <p style="margin-top:6px"><strong>Emergjencë:</strong> Thirrni gjithmonë numrin lokal të urgjencës (112 në BE, 999 në UK).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACT -->
+  <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:32px;text-align:center;backdrop-filter:blur(10px)">
+    <div style="font-size:2rem;margin-bottom:12px">💬</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:8px">Nuk e gjete përgjigjen?</div>
+    <p style="color:rgba(255,255,255,.45);font-size:.9rem;margin-bottom:20px">Ekipi ynë është i disponueshëm 7 ditë/javë</p>
+    <a href="mailto:support@Albaway.com" style="display:inline-block;background:linear-gradient(135deg,#E41E20,#ff4444);color:#fff;padding:12px 28px;border-radius:100px;font-weight:700;font-size:.9rem">Kontakto ekipin →</a>
+  </div>
+
+</div>
+
+<script>
+function tog(btn) {
+  const item = btn.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+// init cursor (basic)
+document.addEventListener('mousemove', e => {
+  document.documentElement.style.setProperty('--cx', e.clientX+'px');
+  document.documentElement.style.setProperty('--cy', e.clientY+'px');
+});
+</script>
+</body>
+</html>

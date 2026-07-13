@@ -1,0 +1,317 @@
+﻿<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Termat & Kushtet — Albaway</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.legal-wrap{max-width:800px;margin:0 auto;padding:120px 32px 100px;position:relative;z-index:2}
+.legal-nav{
+  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:48px;
+  position:sticky;top:72px;z-index:50;
+  background:rgba(2,8,24,.85);backdrop-filter:blur(16px);
+  padding:12px 0;
+}
+.legal-tab{
+  padding:8px 18px;border-radius:100px;font-size:.82rem;font-weight:600;
+  border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);
+  transition:all .2s;cursor:pointer;background:rgba(255,255,255,.04);
+}
+.legal-tab.on,.legal-tab:hover{background:rgba(228,30,32,.15);border-color:rgba(228,30,32,.3);color:#ff7b7b}
+.legal-doc{display:none}.legal-doc.on{display:block}
+.legal-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:2rem;font-weight:800;margin-bottom:8px;
+}
+.legal-date{color:rgba(255,255,255,.3);font-size:.82rem;margin-bottom:40px}
+.legal-section{margin-bottom:36px}
+.legal-section h2{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:1.1rem;font-weight:700;color:#fff;
+  margin-bottom:12px;padding-bottom:10px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.legal-section h3{font-size:.95rem;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:8px;margin-top:16px}
+.legal-section p,.legal-section li{font-size:.88rem;color:rgba(255,255,255,.5);line-height:1.8}
+.legal-section ul{margin-left:20px;margin-top:8px}
+.legal-section li{margin-bottom:4px}
+.legal-section a{color:#60a5fa}
+.highlight-box{
+  background:rgba(228,30,32,.08);border:1px solid rgba(228,30,32,.2);
+  border-radius:12px;padding:16px;margin:16px 0;
+}
+.highlight-box p{color:rgba(255,255,255,.6)!important}
+.info-box{
+  background:rgba(0,61,130,.15);border:1px solid rgba(0,86,179,.25);
+  border-radius:12px;padding:16px;margin:16px 0;
+}
+.info-box p{color:rgba(255,255,255,.55)!important}
+</style>
+</head>
+<body>
+<div class="aurora"><div class="orb orb1"></div><div class="orb orb2"></div></div>
+<div class="noise"></div>
+
+<header id="header">
+  <div class="nav-inner">
+    <a class="logo" href="/">🇦🇱 Alba<strong style="color:#fff">Way</strong></a>
+    <div class="nav-right"><a href="/" class="btn-nav-ghost">← Kthehu</a></div>
+  </div>
+</header>
+
+<div class="legal-wrap">
+  <div class="legal-nav">
+    <button class="legal-tab on" onclick="showDoc('cgv')">📋 Termat & Kushtet</button>
+    <button class="legal-tab"    onclick="showDoc('privacy')">🔒 Privatësia (GDPR)</button>
+    <button class="legal-tab"    onclick="showDoc('cancel')">↩️ Anulimi</button>
+    <button class="legal-tab"    onclick="showDoc('safety')">🛡️ Siguria</button>
+    <button class="legal-tab"    onclick="showDoc('mentions')">⚖️ Informacionet ligjore</button>
+  </div>
+
+  <!-- TERMAT -->
+  <div class="legal-doc on" id="doc-cgv">
+    <div class="legal-title">Termat dhe Kushtet e Shërbimit</div>
+    <div class="legal-date">Version 1.0 · Hyrë në fuqi: 1 Korrik 2026</div>
+
+    <div class="highlight-box"><p>⚠️ Ju lutem lexoni me kujdes këto terme përpara se të përdorni platformën. Përdorimi i Albaway nënkupton pranimin e plotë të këtyre kushteve.</p></div>
+
+    <div class="legal-section">
+      <h2>1. Çfarë është Albaway</h2>
+      <p>Albaway (këtu e tutje "Platforma") është një shërbim online ndërmjetësimi që lidh shoferë privatë me pasagjerë që udhëtojnë në të njëjtin drejtim. Platforma <strong>nuk ofron transport</strong> — ajo vetëm mundëson komunikimin mes individëve për ndarjen e kostove të udhëtimit.</p>
+      <div class="info-box"><p>📌 Albaway është ndërmjetës teknologjik, jo kompani transporti. Shoferi është kontraktues i pavarur privat.</p></div>
+    </div>
+
+    <div class="legal-section">
+      <h2>2. Kushtet e regjistrimit</h2>
+      <p>Për t'u regjistruar duhet të:</p>
+      <ul>
+        <li>Jeni të paktën <strong>18 vjeç</strong></li>
+        <li>Keni një adresë emaili valide</li>
+        <li>Siguroni informacion të saktë dhe të vërtetë</li>
+        <li>Keni leje ligjore për të udhëtuar ndërkombëtarisht</li>
+      </ul>
+      <h3>Për shoferët gjithashtu:</h3>
+      <ul>
+        <li>Patentë e vlefshme për kategorinë e mjetit</li>
+        <li>Siguracion i detyrueshëm aktiv (RC Auto)</li>
+        <li>Mjet teknikisht i rregullt dhe i kontrolluar</li>
+        <li>Çmimi nuk mund të tejkalojë koston reale të karburantit + autostradave</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>3. Rregullat e platformës</h2>
+      <h3>Të ndaluara:</h3>
+      <ul>
+        <li>❌ Publikimi i udëtimeve komerciale (taksi, furgon shërbimi)</li>
+        <li>❌ Çmime që tejkalojnë koston reale (fitim personal)</li>
+        <li>❌ Informacion i rremë në profil ose udëtim</li>
+        <li>❌ Diskriminimi i pasagjerëve</li>
+        <li>❌ Transport i substancave ilegale</li>
+        <li>❌ Shkelja e rregullave të qarkullimit gjatë udëtimit</li>
+      </ul>
+      <p style="margin-top:12px">Shkelja e rregullave çon në pezullim ose fshirje të llogarisë dhe raportim tek autoritetet nëse nevojitet.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>4. Pagesat dhe komisioni</h2>
+      <p>Platforma mban <strong>8% komision</strong> nga çmimi total, i paguar nga pasagjeri si "tarifë shërbimi". Shoferi merr 100% të çmimit të caktuar.</p>
+      <p style="margin-top:8px">Pagesat processohen nga <strong>Stripe Inc.</strong> dhe i nënshtrohen Termave të Shërbimit të Stripe.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>5. Kufizimi i përgjegjësisë</h2>
+      <div class="highlight-box"><p>Albaway <strong>nuk mban përgjegjësi</strong> për aksidente, vonesë, humbje bagazhesh, ose çdo dëm tjetër gjatë udhëtimit. Marrëdhënia kontraktuale është VETËM mes shoferit dhe pasagjerit.</p></div>
+      <p>Platforma nuk garanton: disponueshmërinë e vazhdueshme të shërbimit, ekzistencën e udëtimeve specifike, sjelljen e shoferëve ose pasagjerëve.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>6. Ligji i zbatueshëm</h2>
+      <p>Këto terme rregullohen nga <strong>ligji zviceran</strong>. Çdo mosmarrëveshje do t'i nënshtrohet kompetencës ekskluzive të gjykatave të <strong>Zürich, Zvicër</strong>.</p>
+    </div>
+  </div>
+
+  <!-- PRIVATËSIA -->
+  <div class="legal-doc" id="doc-privacy">
+    <div class="legal-title">Politika e Privatësisë (GDPR)</div>
+    <div class="legal-date">Version 1.0 · Hyrë në fuqi: 1 Korrik 2026</div>
+
+    <div class="info-box"><p>✅ Albaway është plotësisht konform me Rregulloren (BE) 2016/679 (GDPR) dhe Ligjin zviceran të mbrojtjes së të dhënave (nDSG).</p></div>
+
+    <div class="legal-section">
+      <h2>1. Kontrollori i të dhënave</h2>
+      <p><strong>Albaway SRL</strong><br/>Adresa: Zürich, Zvicër<br/>Email: privacy@Albaway.com<br/>DPO (Zyrtari i mbrojtjes së të dhënave): dpo@Albaway.com</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>2. Cilat të dhëna mbledhim</h2>
+      <h3>Të dhënat që na jepni:</h3>
+      <ul>
+        <li>Emri dhe mbiemri · Email · Numri i telefonit</li>
+        <li>Informacioni i pagesës (processohet nga Stripe, nuk ruajmë numra kartash)</li>
+        <li>Fotografia e profilit (opsionale)</li>
+        <li>Informacioni i udëtimeve dhe rezervimeve</li>
+      </ul>
+      <h3>Të dhënat e mbledhura automatikisht:</h3>
+      <ul>
+        <li>Adresa IP · Browser · Pajisja e përdorur</li>
+        <li>Koha dhe frekuenca e hyrjes</li>
+        <li>Faqet e vizituara brenda platformës</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>3. Si i përdorim të dhënat</h2>
+      <ul>
+        <li>✅ Ofrimi i shërbimit të rezervimit dhe pagesës</li>
+        <li>✅ Komunikimi me ju (konfirmime, njoftime)</li>
+        <li>✅ Siguria e platformës dhe parandalimi i mashtrimit</li>
+        <li>✅ Përmbushja e detyrimeve ligjore</li>
+        <li>✅ Përmirësimi i shërbimit (statistika anonime)</li>
+      </ul>
+      <p style="margin-top:8px"><strong>Nuk</strong> i shesim të dhënat tuaja palëve të treta. Nuk bëjmë marketing pa pëlqimin tuaj.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>4. Të drejtat tuaja GDPR</h2>
+      <ul>
+        <li>📖 <strong>E drejta e aksesit</strong> — kërkoni kopjen e të dhënave tuaja</li>
+        <li>✏️ <strong>E drejta e korrigjimit</strong> — korrigjoni të dhëna të pasakta</li>
+        <li>🗑️ <strong>E drejta e fshirjes</strong> ("e drejta për t'u harruar")</li>
+        <li>⛔ <strong>E drejta e kufizimit</strong> të përpunimit</li>
+        <li>📤 <strong>E drejta e portabilitetit</strong> — merrni të dhënat në format elektronik</li>
+        <li>🚫 <strong>E drejta e kundërshtimit</strong> të përpunimit</li>
+      </ul>
+      <p style="margin-top:8px">Dërgoni çdo kërkesë tek: <strong>privacy@Albaway.com</strong>. Pergjigjem brenda <strong>30 ditëve</strong>.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>5. Cookies</h2>
+      <p>Përdorim vetëm cookies teknike të nevojshme (sesioni, autentifikimi). <strong>Nuk</strong> përdorim cookies reklamimi ose tracking.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>6. Ruajtja e të dhënave</h2>
+      <p>Të dhënat tuaja ruhen për <strong>maksimum 3 vjet</strong> pas largimit të fundit aktiv, ose deri sa të kërkoni fshirjen. Të dhënat financiare ruhen 10 vjet sipas ligjit.</p>
+    </div>
+  </div>
+
+  <!-- ANULIMI -->
+  <div class="legal-doc" id="doc-cancel">
+    <div class="legal-title">Politika e Anulimit dhe Rimbursimit</div>
+    <div class="legal-date">Version 1.0 · Hyrë në fuqi: 1 Korrik 2026</div>
+
+    <div class="legal-section">
+      <h2>Anulimi nga pasagjeri</h2>
+      <table style="width:100%;border-collapse:collapse;margin-top:12px">
+        <tr style="background:rgba(0,61,130,.3)"><th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Koha e anulimit</th><th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Rimbursimi</th><th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Tarifa shërbimi</th></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.05)"><td style="padding:12px 16px;font-size:.88rem;color:rgba(255,255,255,.6)">48+ orë para nisjes</td><td style="padding:12px 16px;font-size:.88rem;color:#34d399;font-weight:700">100%</td><td style="padding:12px 16px;font-size:.88rem;color:#34d399">Rimbursohet</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.05)"><td style="padding:12px 16px;font-size:.88rem;color:rgba(255,255,255,.6)">24–48 orë para nisjes</td><td style="padding:12px 16px;font-size:.88rem;color:#fbbf24;font-weight:700">70%</td><td style="padding:12px 16px;font-size:.88rem;color:#ff7b7b">Nuk rimbursohet</td></tr>
+        <tr><td style="padding:12px 16px;font-size:.88nm;color:rgba(255,255,255,.6)">Më pak se 24 orë</td><td style="padding:12px 16px;font-size:.88rem;color:#ff7b7b;font-weight:700">0%</td><td style="padding:12px 16px;font-size:.88rem;color:#ff7b7b">Nuk rimbursohet</td></tr>
+      </table>
+      <p style="margin-top:12px;font-size:.85rem;color:rgba(255,255,255,.4)">Rimbursimi processohet brenda 5–10 ditësh pune varësisht nga banka juaj.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>Anulimi nga shoferi</h2>
+      <p>Nëse shoferi anulon <strong>në çdo kohë</strong>: pasagjeri merr <strong>rimbursim të plotë 100%</strong> + kompensim <strong>€5</strong> për shqetësimin.</p>
+      <p style="margin-top:8px">Shoferët me 3+ anulime brenda 6 muajve pezullohen automatikisht nga platforma.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>Si bëj anulimin</h2>
+      <ul>
+        <li><strong>1.</strong> Hyr në llogarinë → "Rezervimet e mia"</li>
+        <li><strong>2.</strong> Kliko udëtimin → "Anulo rezervimin"</li>
+        <li><strong>3.</strong> Konfirmo anulimin</li>
+        <li><strong>4.</strong> Merr emailin e konfirmimit me detajet e rimbursimit</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SIGURIA -->
+  <div class="legal-doc" id="doc-safety">
+    <div class="legal-title">Udhëzime Sigurie</div>
+    <div class="legal-date">Udhëzime zyrtare · Albaway</div>
+
+    <div class="legal-section">
+      <h2>🚗 Për shoferët</h2>
+      <ul>
+        <li>✅ Kontrolloni mjetin përpara çdo udëtimi (goma, frena, ndriçimi)</li>
+        <li>✅ Zbatoni gjithmonë kufijtë e shpejtësisë</li>
+        <li>✅ Pushoni çdo 2–3 orë gjatë udëtimeve të gjata</li>
+        <li>✅ Sigurohuni që pasagjerët të kenë rrip sigurimi</li>
+        <li>✅ Mos përdorni telefonin gjatë vozitjes</li>
+        <li>✅ Informoni familjen/miqtë për itinerarin</li>
+        <li>❌ Mos pranoni pasagjerë pa rezervim paraprak</li>
+        <li>❌ Mos vozisni nëse jeni të lodhur ose nën ndikimin e substancave</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>🎒 Për pasagjerët</h2>
+      <ul>
+        <li>✅ Kontrolloni profilin dhe vlerësimet e shoferit para rezervimit</li>
+        <li>✅ Lajmërojnë dikë të besuar për itinerarin dhe numrin e makinës</li>
+        <li>✅ Ndani vendtakimin dhe orën me familjen/miqtë</li>
+        <li>✅ Mbani telefonin të karikuar gjatë udhëtimit</li>
+        <li>✅ Ndiqni instinktin tuaj — nëse diçka ndihet keq, mos udhëtoni</li>
+        <li>❌ Mos paguani para ofrimit të shërbimit (jashtë platformës)</li>
+        <li>❌ Mos ndani informacion personal të ndjeshëm me shoferë të panjohur</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>🚨 Emergjenca</h2>
+      <div class="highlight-box"><p>Në rast aksidenti ose emergjence: thirrni menjëherë <strong>112</strong> (BE) ose <strong>999</strong> (UK). Pastaj kontaktoni Albaway: +41 76 000 00 00.</p></div>
+    </div>
+  </div>
+
+  <!-- MENTIONS LEGALES -->
+  <div class="legal-doc" id="doc-mentions">
+    <div class="legal-title">Informacionet Ligjore</div>
+    <div class="legal-date">Informacionet e detyrueshme ligjore</div>
+
+    <div class="legal-section">
+      <h2>Operatori i platformës</h2>
+      <p><strong>Albaway SRL</strong><br/>
+      Numri i regjistrimit: CHE-XXX.XXX.XXX<br/>
+      Adresa: Zürich, Zvicër<br/>
+      Email: info@Albaway.com<br/>
+      Tel: +41 76 000 00 00</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>Infrastruktura teknike</h2>
+      <p>Shërbimi hostohet në: <strong>AWS Europe (Frankfurt)</strong><br/>
+      Processori i pagesave: <strong>Stripe Inc.</strong>, San Francisco, CA<br/>
+      Enkriptimi: <strong>TLS 1.3 + AES-256</strong></p>
+    </div>
+
+    <div class="legal-section">
+      <h2>Prona intelektuale</h2>
+      <p>Të gjithë përmbajtja e platformës (logo, dizajni, teksti, kodi) janë pronë ekskluzive e Albaway SRL. Riprodhimi i paautorizuar është i ndaluar.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>Kontakti</h2>
+      <p>📧 Përgjithshme: info@Albaway.com<br/>
+      📧 Mbështetje: support@Albaway.com<br/>
+      📧 Privatësia/GDPR: privacy@Albaway.com<br/>
+      📧 Presë: press@Albaway.com</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function showDoc(id) {
+  document.querySelectorAll('.legal-doc').forEach(d=>d.classList.remove('on'));
+  document.querySelectorAll('.legal-tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('doc-'+id)?.classList.add('on');
+  event.target.classList.add('on');
+}
+</script>
+</body>
+</html>
