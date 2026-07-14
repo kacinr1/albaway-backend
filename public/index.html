@@ -53,6 +53,19 @@
         </button>
         <button onclick="logout()" class="btn-nav-ghost">Dil</button>
       </div>
+      <div class="lang-sw" id="lang-sw">
+        <button class="lang-btn" onclick="toggleLang()">
+          <span id="lang-flag">🇦🇱</span>
+          <span id="lang-name">Shqip</span>
+          <span style="font-size:.65rem;opacity:.5">▼</span>
+        </button>
+        <div class="lang-drop hidden" id="lang-drop">
+          <button onclick="setLang('sq')">🇦🇱 Shqip</button>
+          <button onclick="setLang('fr')">🇫🇷 Français</button>
+          <button onclick="setLang('de')">🇩🇪 Deutsch</button>
+          <button onclick="setLang('en')">🇬🇧 English</button>
+        </div>
+      </div>
       <button class="hamburger" id="hamburger" onclick="toggleMobileNav()">☰</button>
     </div>
   </div>
@@ -119,6 +132,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

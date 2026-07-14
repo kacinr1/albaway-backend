@@ -685,6 +685,28 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
   .tlc{grid-template-columns:1fr}
   .hero-stats{gap:24px}
 }
+/* ── LANGUAGE SWITCHER ─────────────────────────────────── */
+.lang-sw{position:relative}
+.lang-btn{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.85);padding:6px 12px;border-radius:100px;
+  font-size:.82rem;font-weight:600;transition:all .2s;
+}
+.lang-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.lang-drop{
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:#141929;border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;overflow:hidden;min-width:140px;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:500;
+}
+.lang-drop button{
+  display:flex;align-items:center;gap:8px;
+  width:100%;padding:10px 16px;font-size:.875rem;
+  color:rgba(255,255,255,.8);transition:background .12s;text-align:left;
+}
+.lang-drop button:hover{background:rgba(228,30,32,.2);color:#fff}
+
 /* ── AUTOCOMPLETE ──────────────────────────────────────── */
 .ac-wrap{position:relative}
 .ac-drop{

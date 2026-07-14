@@ -236,28 +236,27 @@ async function renderHome() {
   document.getElementById('app').innerHTML = `
   <div class="page">
     <section class="hero">
-      <div class="hero-badge"><div class="hero-dot"></div> 2000+ udhëtarë çdo muaj</div>
+      <div class="hero-badge"><div class="hero-dot"></div> ${t('hero_badge')}</div>
       <h1>
-        <span class="h1-white">Udhëto kudo</span>
-        <span class="h1-red">në Shqipëri 🇦🇱</span>
+        <span class="h1-white">${t('hero_h1_1')}</span>
+        <span class="h1-red">${t('hero_h1_2')}</span>
       </h1>
-      <p class="hero-sub">Bashkudhëtim i sigurt mes shqiptarëve të Evropës. Nga Zürihu në Prishtinë — bashkë.</p>
+      <p class="hero-sub">${t('hero_sub')}</p>
       <div class="search-card">
-        <div class="sf"><span class="sf-icon">🔵</span><input id="h-from" placeholder="Nga... (Zürich, Stuttgart...)" list="cl"/></div>
+        <div class="sf"><span class="sf-icon">🔵</span><input id="h-from" placeholder="${t('hero_from')}"/></div>
         <div class="sd"></div>
-        <div class="sf"><span class="sf-icon">🔴</span><input id="h-to" placeholder="Drejt... (Prishtinë, Tirana...)" list="cl"/></div>
+        <div class="sf"><span class="sf-icon">🔴</span><input id="h-to" placeholder="${t('hero_to')}"/></div>
         <div class="sd"></div>
         <div class="sf"><span class="sf-icon">📅</span><input id="h-date" type="date" min="${today()}"/></div>
-        <button class="search-go" onclick="doSearch()">🔍 Kërko →</button>
+        <button class="search-go" onclick="doSearch()">${t('hero_search')}</button>
       </div>
-      ${cdl()}
       <div class="hero-stats">
-        <div class="hs"><div class="hs-num" data-to="2400">0+</div><div class="hs-lbl">Udhëtarë</div></div>
-        <div class="hs"><div class="hs-num" data-to="180">0+</div><div class="hs-lbl">Shoferë aktiv</div></div>
-        <div class="hs"><div class="hs-num" data-to="34">0+</div><div class="hs-lbl">Qytete</div></div>
-        <div class="hs"><div class="hs-num" data-to="98">0%</div><div class="hs-lbl">Kënaqësi</div></div>
+        <div class="hs"><div class="hs-num" data-to="2400">0+</div><div class="hs-lbl">${t('stat_travelers')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="180">0+</div><div class="hs-lbl">${t('stat_drivers')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="34">0+</div><div class="hs-lbl">${t('stat_cities')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="98">0%</div><div class="hs-lbl">${t('stat_satisfaction')}</div></div>
       </div>
-      <div class="scroll-hint"><span>Zbrit</span><div class="scroll-bar"></div></div>
+      <div class="scroll-hint"><span>${t('scroll')}</span><div class="scroll-bar"></div></div>
     </section>
 
     <div class="section-wrap" id="trips-home">
@@ -341,8 +340,8 @@ async function renderHome() {
     const trips = await apiFetch('/trips');
     document.getElementById('trips-home').innerHTML = `
       <div class="section-header-row reveal">
-        <div><div class="section-tag">Udëtimet e ardhshme</div><div class="section-h">Gjej vendin tënd tani</div></div>
-        <button class="btn-see-all" onclick="navigate('search')">Shiko të gjitha →</button>
+        <div><div class="section-tag">${t('trips_upcoming')}</div><div class="section-h">${t('trips_find')}</div></div>
+        <button class="btn-see-all" onclick="navigate('search')">${t('trips_see_all')}</button>
       </div>
       ${trips.length
         ? `<div class="trips-grid">${trips.slice(0,6).map(tripCard).join('')}</div>`
@@ -620,11 +619,11 @@ async function renderDashboard() {
         <button onclick="logout()" class="btn-cancel-t">Dil</button>
       </div>
       <div class="tabs">
-        <button class="tab-btn on" id="tb-d" onclick="swTab('d')">🚗 Udëtimet e mia</button>
-        <button class="tab-btn"    id="tb-p" onclick="swTab('p')">🎒 Rezervimet e mia</button>
+        <button class="tab-btn on" id="tb-d" onclick="swTab('d')">${t('dash_driver')}</button>
+        <button class="tab-btn"    id="tb-p" onclick="swTab('p')">${t('dash_passenger')}</button>
       </div>
-      <div id="tp-d" class="tab-pane on"><div class="loading">Duke ngarkuar...</div></div>
-      <div id="tp-p" class="tab-pane"><div class="loading">Duke ngarkuar...</div></div>
+      <div id="tp-d" class="tab-pane on"><div class="loading">${t('trips_loading')}</div></div>
+      <div id="tp-p" class="tab-pane"><div class="loading">${t('trips_loading')}</div></div>
     </div>
   </div>`;
   animateReveal();
@@ -640,7 +639,7 @@ async function loadDriverTab() {
   const p = document.getElementById('tp-d'); if (!p) return;
   try {
     const trips = await apiFetch('/trips/mine');
-    if (!trips.length) { p.innerHTML=`<div class="empty-state"><div class="empty-icon">🚗</div><h3>Nuk ke publikuar udëtime</h3><p>Publiko rrugën tënde dhe merr pasagjerë!</p><button onclick="navigate('publish')" class="btn-publish" style="width:auto;padding:12px 24px;margin-top:20px">+ Publiko tani</button></div>`; return; }
+    if (!trips.length) { p.innerHTML=`<div class="empty-state"><div class="empty-icon">🚗</div><h3>${t('dash_no_trips')}</h3><p>${t('dash_no_trips_sub')}</p><button onclick="navigate('publish')" class="btn-publish" style="width:auto;padding:12px 24px;margin-top:20px">${t('dash_pub_now')}</button></div>`; return; }
     p.innerHTML = trips.map(t=>`
       <div class="my-tc">
         <div onclick="navigate('trip/${t.id}')" style="cursor:none;flex:1">
@@ -666,9 +665,9 @@ async function loadPassengerTab() {
   const p = document.getElementById('tp-p'); if (!p) return;
   try {
     const books = await apiFetch('/bookings/mine');
-    if (!books.length) { p.innerHTML=`<div class="empty-state"><div class="empty-icon">🎒</div><h3>Nuk ke rezervime</h3><p>Kërko udëtim dhe rezervo vendin tënd!</p></div>`; return; }
+    if (!books.length) { p.innerHTML=`<div class="empty-state"><div class="empty-icon">🎒</div><h3>${t('dash_no_bookings')}</h3><p>${t('dash_no_bookings_sub')}</p></div>`; return; }
     p.innerHTML = books.map(b=>{
-      const st = {accepted:'badge-accepted ✅ Pranuar',pending:'badge-pending ⏳ Në pritje',refused:'badge-refused ❌ Refuzuar',cancelled:'badge-cancelled 🚫 Anuluar'}[b.status]||'badge-pending';
+      const st = {accepted:`badge-accepted ${t('st_accepted')}`,pending:`badge-pending ${t('st_pending')}`,refused:`badge-refused ${t('st_refused')}`,cancelled:`badge-cancelled ${t('st_cancelled')}`}[b.status]||'badge-pending';
       const [bc,...bl] = st.split(' ');
       return `<div class="bk-card" onclick="navigate('trip/${b.trip_id}')" style="cursor:none">
         <div class="bk-top">
@@ -679,7 +678,7 @@ async function loadPassengerTab() {
         ${b.status==='accepted' ? `
         <button onclick="event.stopPropagation();openChat('${b.id}','${b.trip?.driver_id||''}','${esc(b.trip?.driver?.name||'Shofer')}')"
           style="margin-top:10px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:8px;border-radius:10px;font-size:.82rem;font-weight:600">
-          💬 Chato me shoferin
+          ${t('chat_driver')}
         </button>` : ''}
         ${b.status==='accepted' && b.payment_status!=='paid' ? `
         <div style="background:rgba(0,61,130,.15);border:1px solid rgba(0,61,130,.35);border-radius:12px;padding:14px 16px;margin-top:12px">
