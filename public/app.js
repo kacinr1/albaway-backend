@@ -251,10 +251,10 @@ async function renderHome() {
         <button class="search-go" onclick="doSearch()">${t('hero_search')}</button>
       </div>
       <div class="hero-stats">
-        <div class="hs"><div class="hs-num" data-to="2400">0+</div><div class="hs-lbl">${t('stat_travelers')}</div></div>
-        <div class="hs"><div class="hs-num" data-to="180">0+</div><div class="hs-lbl">${t('stat_drivers')}</div></div>
-        <div class="hs"><div class="hs-num" data-to="34">0+</div><div class="hs-lbl">${t('stat_cities')}</div></div>
-        <div class="hs"><div class="hs-num" data-to="98">0%</div><div class="hs-lbl">${t('stat_satisfaction')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="120">0+</div><div class="hs-lbl">${t('stat_travelers')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="22">0+</div><div class="hs-lbl">${t('stat_drivers')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="18">0+</div><div class="hs-lbl">${t('stat_cities')}</div></div>
+        <div class="hs"><div class="hs-num" data-to="96">0%</div><div class="hs-lbl">${t('stat_satisfaction')}</div></div>
       </div>
       <div class="scroll-hint"><span>${t('scroll')}</span><div class="scroll-bar"></div></div>
     </section>
@@ -291,7 +291,7 @@ async function renderHome() {
         </div>
         <div class="bc bc-wide reveal" style="background:rgba(228,30,32,.08);border-color:rgba(228,30,32,.18);display:flex;align-items:center;gap:24px">
           <span style="font-size:3rem">⭐</span>
-          <div><div class="bc-title" style="font-size:1.1rem">4.9/5 vlerësim mesatar</div><div class="bc-desc">Mbi 2400 udhëtarë na besuan. Siguria, prioriteti #1.</div></div>
+          <div><div class="bc-title" style="font-size:1.1rem">4.9/5 vlerësim mesatar</div><div class="bc-desc">Mbi 120 udhëtarë na besuan. Siguria, prioriteti #1.</div></div>
         </div>
       </div>
     </div>
