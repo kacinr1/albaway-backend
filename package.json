@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "albaway-backend",
   "version": "1.0.0",
   "description": "Serveur AlbaWay - Bashkudhëtim shqiptar",
@@ -11,6 +11,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
+    "pg": "^8.22.0",
     "socket.io": "^4.7.5",
     "stripe": "^22.3.1"
   }

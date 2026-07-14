@@ -1,17 +1,21 @@
-﻿'use strict';
+'use strict';
 
 require('dotenv').config();
 
-const express  = require('express');
-const http     = require('http');
+const express    = require('express');
+const http       = require('http');
 const { Server } = require('socket.io');
-const cors     = require('cors');
-const crypto   = require('crypto');
-const fs       = require('fs');
-const path     = require('path');
-const Stripe   = require('stripe');
+const cors       = require('cors');
+const crypto     = require('crypto');
+const path       = require('path');
+const Stripe     = require('stripe');
+const { Pool }   = require('pg');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const pool   = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 const app    = express();
 const server = http.createServer(app);
@@ -23,179 +27,121 @@ app.use(express.json({
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── DATABASE (JSON file) ──────────────────────────────────────────────────
-const DB_FILE = path.join(__dirname, 'data.json');
-
-function db() {
-  if (!fs.existsSync(DB_FILE)) return { users: [], trips: [], bookings: [] };
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-}
-
-function save(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-function uid() { return crypto.randomUUID(); }
+function uid()    { return crypto.randomUUID(); }
 function hash(pw) { return crypto.createHash('sha256').update(pw + '_bbshqip_2026').digest('hex'); }
+const q = (text, params) => pool.query(text, params);
 
-// ─── SEED (demo data on first run) ────────────────────────────────────────
-
-// ─── RATINGS API ──────────────────────────────────────────────────────────
-app.post('/api/ratings', auth, (req, res) => {
-  const { booking_id, stars, comment } = req.body;
-  if (!stars || stars < 1 || stars > 5)
-    return res.status(400).json({ error: 'Vlerësimi duhet të jetë 1–5 yje' });
-
-  const data    = db();
-  const booking = data.bookings.find(b => b.id === booking_id);
-  if (!booking) return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
-  if (booking.passenger_id !== req.user.id)
-    return res.status(403).json({ error: 'Nuk keni akses' });
-  if (booking.status !== 'accepted')
-    return res.status(400).json({ error: 'Vetëm rezervimet e pranuara mund të vlerësohen' });
-  if (booking.rated)
-    return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
-
-  const trip = data.trips.find(t => t.id === booking.trip_id);
-  if (!trip) return res.status(404).json({ error: 'Udëtimi nuk u gjet' });
-
-  // update driver rating
-  const dIdx = data.users.findIndex(u => u.id === trip.driver_id);
-  if (dIdx >= 0) {
-    const driver = data.users[dIdx];
-    const count  = driver.trips_count || 1;
-    driver.rating = ((driver.rating || 5) * (count - 1) + stars) / count;
-    driver.rating = Math.round(driver.rating * 10) / 10;
-  }
-
-  // mark booking as rated
-  const bIdx = data.bookings.findIndex(b => b.id === booking_id);
-  data.bookings[bIdx].rated = true;
-  data.bookings[bIdx].rating = { stars, comment: comment || '', created_at: Date.now() };
-
-  // save rating in ratings array
-  if (!data.ratings) data.ratings = [];
-  data.ratings.push({
-    id: uid(), booking_id, trip_id: booking.trip_id,
-    from_id: req.user.id, to_id: trip.driver_id,
-    stars, comment: comment || '', created_at: Date.now()
-  });
-
-  save(data);
-  res.json({ ok: true, new_rating: data.users[dIdx]?.rating });
-});
-
-app.get('/api/ratings/:user_id', (req, res) => {
-  const data = db();
-  const ratings = (data.ratings || [])
-    .filter(r => r.to_id === req.params.user_id)
-    .map(r => {
-      const from = data.users.find(u => u.id === r.from_id);
-      return { ...r, from_name: from?.name || 'Anonim' };
-    })
-    .sort((a, b) => b.created_at - a.created_at)
-    .slice(0, 20);
-  res.json(ratings);
-});
+// ─── INIT DB ──────────────────────────────────────────────────────────────
+async function initDb() {
+  await q(`CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone TEXT DEFAULT '',
+    rating FLOAT DEFAULT 5.0,
+    trips_count INT DEFAULT 0,
+    created_at BIGINT NOT NULL
+  )`);
+  await q(`CREATE TABLE IF NOT EXISTS trips (
+    id UUID PRIMARY KEY,
+    driver_id UUID REFERENCES users(id),
+    from_city TEXT NOT NULL,
+    to_city TEXT NOT NULL,
+    from_point TEXT DEFAULT '',
+    to_point TEXT DEFAULT '',
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    seats INT NOT NULL,
+    seats_available INT NOT NULL,
+    price FLOAT NOT NULL,
+    vehicle JSONB DEFAULT '{}',
+    options JSONB DEFAULT '{}',
+    notes TEXT DEFAULT '',
+    status TEXT DEFAULT 'active',
+    created_at BIGINT NOT NULL
+  )`);
+  await q(`CREATE TABLE IF NOT EXISTS bookings (
+    id UUID PRIMARY KEY,
+    trip_id UUID REFERENCES trips(id),
+    passenger_id UUID REFERENCES users(id),
+    seats INT DEFAULT 1,
+    status TEXT DEFAULT 'pending',
+    message TEXT DEFAULT '',
+    payment_status TEXT,
+    paid_at BIGINT,
+    rated BOOLEAN DEFAULT FALSE,
+    rating JSONB,
+    created_at BIGINT NOT NULL
+  )`);
+  await q(`CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY,
+    booking_id UUID REFERENCES bookings(id),
+    from_id UUID REFERENCES users(id),
+    from_name TEXT DEFAULT '',
+    to_id UUID,
+    text TEXT NOT NULL,
+    created_at BIGINT NOT NULL
+  )`);
+  await q(`CREATE TABLE IF NOT EXISTS ratings (
+    id UUID PRIMARY KEY,
+    booking_id UUID REFERENCES bookings(id),
+    trip_id UUID REFERENCES trips(id),
+    from_id UUID REFERENCES users(id),
+    to_id UUID,
+    stars INT NOT NULL,
+    comment TEXT DEFAULT '',
+    created_at BIGINT NOT NULL
+  )`);
+}
 
 // ─── SEED ─────────────────────────────────────────────────────────────────
-function seed() {
-  const data = db();
-  if (data.users.length > 0) return;
+async function seed() {
+  const { rows } = await q('SELECT COUNT(*) FROM users');
+  if (parseInt(rows[0].count) > 0) return;
 
+  const pw  = hash('demo123');
+  const now = Date.now();
   const drivers = [
-    { id: uid(), name: 'Arben Krasniqi',  email: 'arben@demo.com',   password: hash('demo123'), phone: '+41 79 123 45 67', rating: 4.9, trips_count: 24, created_at: Date.now() },
-    { id: uid(), name: 'Blerina Hoxha',   email: 'blerina@demo.com', password: hash('demo123'), phone: '+49 176 987 65 43', rating: 4.7, trips_count: 11, created_at: Date.now() },
-    { id: uid(), name: 'Ilir Berisha',    email: 'ilir@demo.com',    password: hash('demo123'), phone: '+43 699 222 33 44', rating: 4.8, trips_count: 18, created_at: Date.now() },
-    { id: uid(), name: 'Vjosa Gashi',     email: 'vjosa@demo.com',   password: hash('demo123'), phone: '+41 78 333 22 11', rating: 5.0, trips_count: 7,  created_at: Date.now() },
-    { id: uid(), name: 'Driton Morina',   email: 'driton@demo.com',  password: hash('demo123'), phone: '+49 163 555 66 77', rating: 4.6, trips_count: 32, created_at: Date.now() },
+    { id: uid(), name: 'Arben Krasniqi',  email: 'arben@demo.com',   phone: '+41 79 123 45 67', rating: 4.9, trips_count: 24 },
+    { id: uid(), name: 'Blerina Hoxha',   email: 'blerina@demo.com', phone: '+49 176 987 65 43', rating: 4.7, trips_count: 11 },
+    { id: uid(), name: 'Ilir Berisha',    email: 'ilir@demo.com',    phone: '+43 699 222 33 44', rating: 4.8, trips_count: 18 },
+    { id: uid(), name: 'Vjosa Gashi',     email: 'vjosa@demo.com',   phone: '+41 78 333 22 11',  rating: 5.0, trips_count: 7  },
+    { id: uid(), name: 'Driton Morina',   email: 'driton@demo.com',  phone: '+49 163 555 66 77', rating: 4.6, trips_count: 32 },
   ];
+  for (const d of drivers) {
+    await q(
+      'INSERT INTO users (id,name,email,password,phone,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+      [d.id, d.name, d.email, pw, d.phone, d.rating, d.trips_count, now]
+    );
+  }
 
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const in3days  = new Date(); in3days.setDate(in3days.getDate() + 3);
-  const in5days  = new Date(); in5days.setDate(in5days.getDate() + 5);
-  const in7days  = new Date(); in7days.setDate(in7days.getDate() + 7);
-  const in10days = new Date(); in10days.setDate(in10days.getDate() + 10);
-
-  const fmt = d => d.toISOString().slice(0,10);
+  const fmt = d => d.toISOString().slice(0, 10);
+  const d1  = new Date(); d1.setDate(d1.getDate() + 1);
+  const d3  = new Date(); d3.setDate(d3.getDate() + 3);
+  const d5  = new Date(); d5.setDate(d5.getDate() + 5);
+  const d7  = new Date(); d7.setDate(d7.getDate() + 7);
+  const d10 = new Date(); d10.setDate(d10.getDate() + 10);
 
   const trips = [
-    {
-      id: uid(), driver_id: drivers[0].id,
-      from_city: 'Zürich',      to_city: 'Prishtinë',
-      from_point: 'Zürich HB',  to_point: 'Prishtinë Qendër',
-      date: fmt(tomorrow), time: '05:30',
-      seats: 3, seats_available: 2, price: 80,
-      vehicle: { type: 'car', brand: 'Mercedes', model: 'E-Class', color: 'E zezë' },
-      options: { luggage: true, smoking: false, music: true, pets: false, ac: true },
-      notes: 'Ndalojmë në Salzburg ~20 min. Rruga E55.',
-      status: 'active', created_at: Date.now()
-    },
-    {
-      id: uid(), driver_id: drivers[1].id,
-      from_city: 'Stuttgart',   to_city: 'Tirana',
-      from_point: 'Stuttgart Hbf', to_point: 'Sheshi Skënderbej',
-      date: fmt(in3days), time: '04:00',
-      seats: 4, seats_available: 3, price: 70,
-      vehicle: { type: 'car', brand: 'BMW', model: '5 Series', color: 'E bardhë' },
-      options: { luggage: true, smoking: false, music: true, pets: false, ac: true },
-      notes: 'Ferry Ancona-Durrës. Kthim të dielën.',
-      status: 'active', created_at: Date.now()
-    },
-    {
-      id: uid(), driver_id: drivers[2].id,
-      from_city: 'Wien',        to_city: 'Shkodër',
-      from_point: 'Wien Westbahnhof', to_point: 'Shkodër Qendër',
-      date: fmt(in3days), time: '06:00',
-      seats: 3, seats_available: 3, price: 60,
-      vehicle: { type: 'minivan', brand: 'VW', model: 'Touran', color: 'Gri' },
-      options: { luggage: true, smoking: false, music: false, pets: true, ac: true },
-      notes: 'Bashkë me familjen. Mirëpritim pasagjerë familjarë.',
-      status: 'active', created_at: Date.now()
-    },
-    {
-      id: uid(), driver_id: drivers[3].id,
-      from_city: 'Bern',        to_city: 'Durrës',
-      from_point: 'Bern Hauptbahnhof', to_point: 'Durrës Qendër',
-      date: fmt(in5days), time: '05:00',
-      seats: 2, seats_available: 2, price: 75,
-      vehicle: { type: 'car', brand: 'Audi', model: 'A6', color: 'E kaltër' },
-      options: { luggage: true, smoking: false, music: true, pets: false, ac: true },
-      notes: 'Rruga autostradale. Ndalojmë çdo 3 orë.',
-      status: 'active', created_at: Date.now()
-    },
-    {
-      id: uid(), driver_id: drivers[4].id,
-      from_city: 'München',     to_city: 'Shkup',
-      from_point: 'München Hbf', to_point: 'Shkup Qendër',
-      date: fmt(in7days), time: '06:30',
-      seats: 4, seats_available: 4, price: 65,
-      vehicle: { type: 'car', brand: 'Volkswagen', model: 'Passat', color: 'E kuqe' },
-      options: { luggage: true, smoking: false, music: true, pets: false, ac: true },
-      notes: 'Rruga Salzburg-Ljubljana-Zagreb-Beograd-Shkup.',
-      status: 'active', created_at: Date.now()
-    },
-    {
-      id: uid(), driver_id: drivers[0].id,
-      from_city: 'Prishtinë',   to_city: 'Zürich',
-      from_point: 'Prishtinë Qendër', to_point: 'Zürich HB',
-      date: fmt(in10days), time: '03:00',
-      seats: 3, seats_available: 3, price: 80,
-      vehicle: { type: 'car', brand: 'Mercedes', model: 'E-Class', color: 'E zezë' },
-      options: { luggage: true, smoking: false, music: true, pets: false, ac: true },
-      notes: 'Kthim Prishtinë→Zürich. Ndalojmë në Beograd.',
-      status: 'active', created_at: Date.now()
-    },
+    [uid(), drivers[0].id, 'Zürich',    'Prishtinë', 'Zürich HB',          'Prishtinë Qendër',   fmt(d1),  '05:30', 3, 80, {type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},      {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Ndalojmë në Salzburg ~20 min.'],
+    [uid(), drivers[1].id, 'Stuttgart', 'Tirana',    'Stuttgart Hbf',       'Sheshi Skënderbej',  fmt(d3),  '04:00', 4, 70, {type:'car',brand:'BMW',model:'5 Series',color:'E bardhë'},         {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Ferry Ancona-Durrës.'],
+    [uid(), drivers[2].id, 'Wien',      'Shkodër',   'Wien Westbahnhof',    'Shkodër Qendër',     fmt(d3),  '06:00', 3, 60, {type:'minivan',brand:'VW',model:'Touran',color:'Gri'},             {luggage:true,smoking:false,music:false,pets:true,ac:true},  'Bashkë me familjen.'],
+    [uid(), drivers[3].id, 'Bern',      'Durrës',    'Bern Hauptbahnhof',   'Durrës Qendër',      fmt(d5),  '05:00', 2, 75, {type:'car',brand:'Audi',model:'A6',color:'E kaltër'},             {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Ndalojmë çdo 3 orë.'],
+    [uid(), drivers[4].id, 'München',   'Shkup',     'München Hbf',         'Shkup Qendër',       fmt(d7),  '06:30', 4, 65, {type:'car',brand:'Volkswagen',model:'Passat',color:'E kuqe'},     {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Rruga Salzburg-Ljubljana.'],
+    [uid(), drivers[0].id, 'Prishtinë', 'Zürich',    'Prishtinë Qendër',    'Zürich HB',          fmt(d10), '03:00', 3, 80, {type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},      {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Kthim Prishtinë→Zürich.'],
   ];
-
-  data.users = drivers;
-  data.trips = trips;
-  save(data);
+  for (const [id, did, fc, tc, fp, tp, date, time, seats, price, vehicle, options, notes] of trips) {
+    await q(
+      'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)',
+      [id, did, fc, tc, fp, tp, date, time, seats, seats, price, JSON.stringify(vehicle), JSON.stringify(options), notes, 'active', now]
+    );
+  }
   console.log('✅  Të dhënat demo u ngarkuan.');
 }
 
-// ─── AUTH TOKENS ──────────────────────────────────────────────────────────
-const tokens = new Map(); // token → userId
+// ─── AUTH TOKENS (in-memory) ───────────────────────────────────────────────
+const tokens = new Map();
 
 function createToken(userId) {
   const t = crypto.randomUUID();
@@ -203,22 +149,27 @@ function createToken(userId) {
   return t;
 }
 
-function getUser(req) {
+async function getUser(req) {
   const h = req.headers.authorization || '';
   if (!h.startsWith('Bearer ')) return null;
   const userId = tokens.get(h.slice(7));
   if (!userId) return null;
-  return db().users.find(u => u.id === userId) || null;
+  const { rows } = await q('SELECT * FROM users WHERE id=$1', [userId]);
+  return rows[0] || null;
 }
 
 function auth(req, res, next) {
-  req.user = getUser(req);
-  if (!req.user) return res.status(401).json({ error: 'Ju lutem hyni fillimisht' });
-  next();
+  getUser(req)
+    .then(user => {
+      if (!user) return res.status(401).json({ error: 'Ju lutem hyni fillimisht' });
+      req.user = user;
+      next();
+    })
+    .catch(next);
 }
 
-// ─── SOCKET – real-time notifications ─────────────────────────────────────
-const userSockets = new Map(); // userId → socketId
+// ─── SOCKET ───────────────────────────────────────────────────────────────
+const userSockets = new Map();
 
 io.on('connection', socket => {
   socket.on('identify', userId => {
@@ -229,31 +180,30 @@ io.on('connection', socket => {
     if (socket.userId) userSockets.delete(socket.userId);
   });
 
-  socket.on('send_message', ({ booking_id, to_id, text }) => {
-    if (!socket.userId || !text?.trim()) return;
-    const data    = db();
-    const booking = data.bookings.find(b => b.id === booking_id);
-    if (!booking) return;
-
-    const trip = data.trips.find(t => t.id === booking.trip_id);
-    const isParty = booking.passenger_id === socket.userId || trip?.driver_id === socket.userId;
-    if (!isParty) return;
-
-    const sender = data.users.find(u => u.id === socket.userId);
-    if (!data.messages) data.messages = [];
-    const msg = {
-      id: uid(), booking_id,
-      from_id: socket.userId,
-      from_name: sender?.name || '',
-      to_id, text: text.trim(),
-      created_at: Date.now()
-    };
-    data.messages.push(msg);
-    save(data);
-
-    const sid = userSockets.get(to_id);
-    if (sid) io.to(sid).emit('new_message', msg);
-    socket.emit('new_message', msg);
+  socket.on('send_message', async ({ booking_id, to_id, text }) => {
+    try {
+      if (!socket.userId || !text?.trim()) return;
+      const { rows: [booking] } = await q('SELECT * FROM bookings WHERE id=$1', [booking_id]);
+      if (!booking) return;
+      const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [booking.trip_id]);
+      const isParty = booking.passenger_id === socket.userId || trip?.driver_id === socket.userId;
+      if (!isParty) return;
+      const { rows: [sender] } = await q('SELECT name FROM users WHERE id=$1', [socket.userId]);
+      const msg = {
+        id: uid(), booking_id,
+        from_id: socket.userId,
+        from_name: sender?.name || '',
+        to_id, text: text.trim(),
+        created_at: Date.now()
+      };
+      await q(
+        'INSERT INTO messages (id,booking_id,from_id,from_name,to_id,text,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [msg.id, msg.booking_id, msg.from_id, msg.from_name, msg.to_id, msg.text, msg.created_at]
+      );
+      const sid = userSockets.get(to_id);
+      if (sid) io.to(sid).emit('new_message', msg);
+      socket.emit('new_message', msg);
+    } catch(e) { console.error('send_message error:', e.message); }
   });
 });
 
@@ -262,34 +212,91 @@ function notify(userId, event, payload) {
   if (sid) io.to(sid).emit(event, payload);
 }
 
-// ─── AUTH API ─────────────────────────────────────────────────────────────
-app.post('/api/register', (req, res) => {
-  const { name, email, password, phone } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: 'Plotëso të gjitha fushat' });
+// ─── RATINGS API ──────────────────────────────────────────────────────────
+app.post('/api/ratings', auth, async (req, res) => {
+  try {
+    const { booking_id, stars, comment } = req.body;
+    if (!stars || stars < 1 || stars > 5)
+      return res.status(400).json({ error: 'Vlerësimi duhet të jetë 1–5 yje' });
 
-  const data = db();
-  if (data.users.find(u => u.email === email))
-    return res.status(400).json({ error: 'Ky email është i regjistruar' });
+    const { rows: [booking] } = await q('SELECT * FROM bookings WHERE id=$1', [booking_id]);
+    if (!booking)                             return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
+    if (booking.passenger_id !== req.user.id) return res.status(403).json({ error: 'Nuk keni akses' });
+    if (booking.status !== 'accepted')        return res.status(400).json({ error: 'Vetëm rezervimet e pranuara mund të vlerësohen' });
+    if (booking.rated)                        return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
 
-  const user = { id: uid(), name, email, password: hash(password), phone: phone || '',
-                 rating: 5.0, trips_count: 0, created_at: Date.now() };
-  data.users.push(user);
-  save(data);
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [booking.trip_id]);
+    if (!trip) return res.status(404).json({ error: 'Udëtimi nuk u gjet' });
 
-  const token = createToken(user.id);
-  const { password: _, ...safe } = user;
-  res.json({ token, user: safe });
+    const { rows: [driver] } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
+    if (driver) {
+      const count     = driver.trips_count || 1;
+      const newRating = Math.round(((driver.rating || 5) * (count - 1) + stars) / count * 10) / 10;
+      await q('UPDATE users SET rating=$1 WHERE id=$2', [newRating, driver.id]);
+    }
+
+    const ratingData = { stars, comment: comment || '', created_at: Date.now() };
+    await q('UPDATE bookings SET rated=TRUE, rating=$1 WHERE id=$2', [JSON.stringify(ratingData), booking_id]);
+    await q(
+      'INSERT INTO ratings (id,booking_id,trip_id,from_id,to_id,stars,comment,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+      [uid(), booking_id, booking.trip_id, req.user.id, trip.driver_id, stars, comment || '', Date.now()]
+    );
+
+    const { rows: [updated] } = await q('SELECT rating FROM users WHERE id=$1', [trip.driver_id]);
+    res.json({ ok: true, new_rating: updated?.rating });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
-  const data = db();
-  const user = data.users.find(u => u.email === email && u.password === hash(password));
-  if (!user) return res.status(400).json({ error: 'Email ose fjalëkalim i gabuar' });
+app.get('/api/ratings/:user_id', async (req, res) => {
+  try {
+    const { rows } = await q(`
+      SELECT r.*, u.name as from_name
+      FROM ratings r
+      LEFT JOIN users u ON u.id = r.from_id
+      WHERE r.to_id = $1
+      ORDER BY r.created_at DESC
+      LIMIT 20
+    `, [req.params.user_id]);
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
-  const token = createToken(user.id);
-  const { password: _, ...safe } = user;
-  res.json({ token, user: safe });
+// ─── AUTH API ─────────────────────────────────────────────────────────────
+app.post('/api/register', async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ error: 'Plotëso të gjitha fushat' });
+
+    const { rows: existing } = await q('SELECT id FROM users WHERE email=$1', [email]);
+    if (existing.length) return res.status(400).json({ error: 'Ky email është i regjistruar' });
+
+    const user = {
+      id: uid(), name, email, password: hash(password),
+      phone: phone || '', rating: 5.0, trips_count: 0, created_at: Date.now()
+    };
+    await q(
+      'INSERT INTO users (id,name,email,password,phone,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+      [user.id, user.name, user.email, user.password, user.phone, user.rating, user.trips_count, user.created_at]
+    );
+    const token = createToken(user.id);
+    const { password: _, ...safe } = user;
+    res.json({ token, user: safe });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const { rows: [user] } = await q(
+      'SELECT * FROM users WHERE email=$1 AND password=$2',
+      [email, hash(password)]
+    );
+    if (!user) return res.status(400).json({ error: 'Email ose fjalëkalim i gabuar' });
+    const token = createToken(user.id);
+    const { password: _, ...safe } = user;
+    res.json({ token, user: safe });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/me', auth, (req, res) => {
@@ -298,109 +305,119 @@ app.get('/api/me', auth, (req, res) => {
 });
 
 // ─── TRIP API ─────────────────────────────────────────────────────────────
-app.get('/api/trips', (req, res) => {
-  const { from, to, date, seats } = req.query;
-  const data = db();
-  let trips = data.trips.filter(t => t.status === 'active');
+app.get('/api/trips', async (req, res) => {
+  try {
+    const { from, to, date, seats } = req.query;
+    let text = `
+      SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips
+      FROM trips t LEFT JOIN users u ON u.id = t.driver_id
+      WHERE t.status = 'active'
+    `;
+    const params = [];
+    if (from)  { params.push(`%${from.toLowerCase()}%`); text += ` AND LOWER(t.from_city) LIKE $${params.length}`; }
+    if (to)    { params.push(`%${to.toLowerCase()}%`);   text += ` AND LOWER(t.to_city) LIKE $${params.length}`; }
+    if (date)  { params.push(date);                      text += ` AND t.date = $${params.length}`; }
+    if (seats) { params.push(parseInt(seats));           text += ` AND t.seats_available >= $${params.length}`; }
+    text += ' ORDER BY t.date, t.time';
 
-  if (from)  trips = trips.filter(t => t.from_city.toLowerCase().includes(from.toLowerCase()));
-  if (to)    trips = trips.filter(t => t.to_city.toLowerCase().includes(to.toLowerCase()));
-  if (date)  trips = trips.filter(t => t.date === date);
-  if (seats) trips = trips.filter(t => t.seats_available >= parseInt(seats));
-
-  trips.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-
-  const result = trips.map(t => {
-    const drv = data.users.find(u => u.id === t.driver_id);
-    return { ...t, driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count } : null };
-  });
-  res.json(result);
+    const { rows } = await q(text, params);
+    const result = rows.map(r => ({
+      id: r.id, driver_id: r.driver_id, from_city: r.from_city, to_city: r.to_city,
+      from_point: r.from_point, to_point: r.to_point, date: r.date, time: r.time,
+      seats: r.seats, seats_available: r.seats_available, price: r.price,
+      vehicle: r.vehicle, options: r.options, notes: r.notes,
+      status: r.status, created_at: r.created_at,
+      driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips } : null
+    }));
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/trips/mine', auth, (req, res) => {
-  const data = db();
-  const trips = data.trips
-    .filter(t => t.driver_id === req.user.id)
-    .sort((a, b) => b.created_at - a.created_at)
-    .map(t => {
-      const pending  = data.bookings.filter(b => b.trip_id === t.id && b.status === 'pending').length;
-      const accepted = data.bookings.filter(b => b.trip_id === t.id && b.status === 'accepted').length;
-      return { ...t, pending_requests: pending, accepted_passengers: accepted };
+app.get('/api/trips/mine', auth, async (req, res) => {
+  try {
+    const { rows: trips } = await q(
+      'SELECT * FROM trips WHERE driver_id=$1 ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    const result = await Promise.all(trips.map(async t => {
+      const { rows: [p] } = await q("SELECT COUNT(*) FROM bookings WHERE trip_id=$1 AND status='pending'",  [t.id]);
+      const { rows: [a] } = await q("SELECT COUNT(*) FROM bookings WHERE trip_id=$1 AND status='accepted'", [t.id]);
+      return { ...t, pending_requests: parseInt(p.count), accepted_passengers: parseInt(a.count) };
+    }));
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/trips/:id', async (req, res) => {
+  try {
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [req.params.id]);
+    if (!trip) return res.status(404).json({ error: 'Udëtimi nuk u gjet' });
+
+    const { rows: [drv] } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
+    const { rows: accepted } = await q("SELECT * FROM bookings WHERE trip_id=$1 AND status='accepted'", [trip.id]);
+    const passengers = (await Promise.all(
+      accepted.map(b => q('SELECT id,name,rating FROM users WHERE id=$1', [b.passenger_id]).then(r => r.rows[0]))
+    )).filter(Boolean);
+
+    res.json({
+      ...trip,
+      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count, phone: drv.phone } : null,
+      passengers
     });
-  res.json(trips);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/trips/:id', (req, res) => {
-  const data = db();
-  const trip = data.trips.find(t => t.id === req.params.id);
-  if (!trip) return res.status(404).json({ error: 'Udëtimi nuk u gjet' });
+app.post('/api/trips', auth, async (req, res) => {
+  try {
+    const { from_city, to_city, from_point, to_point, date, time, seats, price, vehicle, options, notes } = req.body;
+    if (!from_city || !to_city || !date || !time || !seats || !price)
+      return res.status(400).json({ error: 'Plotëso të gjitha fushat e detyrueshme' });
 
-  const drv  = data.users.find(u => u.id === trip.driver_id);
-  const accepted = data.bookings.filter(b => b.trip_id === trip.id && b.status === 'accepted');
-  const passengers = accepted.map(b => {
-    const p = data.users.find(u => u.id === b.passenger_id);
-    return p ? { id: p.id, name: p.name, rating: p.rating } : null;
-  }).filter(Boolean);
-
-  res.json({
-    ...trip,
-    driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count, phone: drv.phone } : null,
-    passengers
-  });
+    const trip = {
+      id: uid(), driver_id: req.user.id,
+      from_city, to_city,
+      from_point: from_point || from_city,
+      to_point:   to_point   || to_city,
+      date, time,
+      seats: +seats, seats_available: +seats,
+      price: +price,
+      vehicle: vehicle || {}, options: options || {},
+      notes: notes || '', status: 'active', created_at: Date.now()
+    };
+    await q(
+      'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)',
+      [trip.id, trip.driver_id, trip.from_city, trip.to_city, trip.from_point, trip.to_point, trip.date, trip.time, trip.seats, trip.seats_available, trip.price, JSON.stringify(trip.vehicle), JSON.stringify(trip.options), trip.notes, trip.status, trip.created_at]
+    );
+    await q('UPDATE users SET trips_count = trips_count + 1 WHERE id=$1', [req.user.id]);
+    res.json(trip);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/trips', auth, (req, res) => {
-  const { from_city, to_city, from_point, to_point, date, time, seats, price, vehicle, options, notes } = req.body;
-  if (!from_city || !to_city || !date || !time || !seats || !price)
-    return res.status(400).json({ error: 'Plotëso të gjitha fushat e detyrueshme' });
+app.patch('/api/trips/:id/cancel', auth, async (req, res) => {
+  try {
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1 AND driver_id=$2', [req.params.id, req.user.id]);
+    if (!trip) return res.status(404).json({ error: 'Nuk u gjet' });
 
-  const data  = db();
-  const trip  = {
-    id: uid(), driver_id: req.user.id,
-    from_city, to_city,
-    from_point: from_point || from_city,
-    to_point:   to_point   || to_city,
-    date, time,
-    seats: +seats, seats_available: +seats,
-    price: +price,
-    vehicle: vehicle || {},
-    options: options || {},
-    notes: notes || '',
-    status: 'active',
-    created_at: Date.now()
-  };
-  data.trips.push(trip);
-  const idx = data.users.findIndex(u => u.id === req.user.id);
-  if (idx >= 0) data.users[idx].trips_count = (data.users[idx].trips_count || 0) + 1;
-  save(data);
-  res.json(trip);
-});
-
-app.patch('/api/trips/:id/cancel', auth, (req, res) => {
-  const data = db();
-  const idx  = data.trips.findIndex(t => t.id === req.params.id && t.driver_id === req.user.id);
-  if (idx < 0) return res.status(404).json({ error: 'Nuk u gjet' });
-
-  data.trips[idx].status = 'cancelled';
-  data.bookings
-    .filter(b => b.trip_id === req.params.id && b.status === 'pending')
-    .forEach(b => {
-      data.bookings.find(x => x.id === b.id).status = 'cancelled';
+    await q("UPDATE trips SET status='cancelled' WHERE id=$1", [trip.id]);
+    const { rows: pending } = await q("SELECT * FROM bookings WHERE trip_id=$1 AND status='pending'", [trip.id]);
+    for (const b of pending) {
+      await q("UPDATE bookings SET status='cancelled' WHERE id=$1", [b.id]);
       notify(b.passenger_id, 'booking_update', { booking_id: b.id, status: 'cancelled' });
-    });
-  save(data);
-  res.json({ ok: true });
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── BOOKING API ──────────────────────────────────────────────────────────
-app.get('/api/bookings/mine', auth, (req, res) => {
-  const data = db();
-  const result = data.bookings
-    .filter(b => b.passenger_id === req.user.id)
-    .sort((a, b) => b.created_at - a.created_at)
-    .map(b => {
-      const trip   = data.trips.find(t => t.id === b.trip_id);
-      const drv    = trip ? data.users.find(u => u.id === trip.driver_id) : null;
+app.get('/api/bookings/mine', auth, async (req, res) => {
+  try {
+    const { rows: bookings } = await q(
+      'SELECT * FROM bookings WHERE passenger_id=$1 ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    const result = await Promise.all(bookings.map(async b => {
+      const { rows: [trip] }  = await q('SELECT * FROM trips WHERE id=$1', [b.trip_id]);
+      const { rows: [drv] }   = trip ? await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]) : { rows: [] };
       const isPaid = b.payment_status === 'paid';
       return {
         ...b,
@@ -409,116 +426,111 @@ app.get('/api/bookings/mine', auth, (req, res) => {
           driver: drv ? { name: drv.name, rating: drv.rating, phone: isPaid ? (drv.phone || '') : null } : null
         } : null
       };
-    });
-  res.json(result);
+    }));
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/trips/:id/requests', auth, (req, res) => {
-  const data = db();
-  const trip = data.trips.find(t => t.id === req.params.id && t.driver_id === req.user.id);
-  if (!trip) return res.status(403).json({ error: 'Nuk keni akses' });
+app.get('/api/trips/:id/requests', auth, async (req, res) => {
+  try {
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1 AND driver_id=$2', [req.params.id, req.user.id]);
+    if (!trip) return res.status(403).json({ error: 'Nuk keni akses' });
 
-  const result = data.bookings
-    .filter(b => b.trip_id === req.params.id)
-    .map(b => {
-      const p      = data.users.find(u => u.id === b.passenger_id);
+    const { rows: bookings } = await q('SELECT * FROM bookings WHERE trip_id=$1', [trip.id]);
+    const result = await Promise.all(bookings.map(async b => {
+      const { rows: [p] } = await q('SELECT * FROM users WHERE id=$1', [b.passenger_id]);
       const isPaid = b.payment_status === 'paid';
       return {
         ...b,
         passenger: p ? { id: p.id, name: p.name, rating: p.rating, phone: isPaid ? (p.phone || '') : null } : null
       };
+    }));
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/bookings', auth, async (req, res) => {
+  try {
+    const { trip_id, seats, message } = req.body;
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [trip_id]);
+    if (!trip || trip.status !== 'active')
+      return res.status(400).json({ error: 'Udëtimi nuk është i disponueshëm' });
+    if (trip.driver_id === req.user.id)
+      return res.status(400).json({ error: 'Nuk mund të rezervosh udëtimin tënd' });
+
+    const want = parseInt(seats) || 1;
+    if (trip.seats_available < want)
+      return res.status(400).json({ error: 'Nuk ka vende të mjaftueshme' });
+
+    const { rows: dup } = await q(
+      "SELECT id FROM bookings WHERE trip_id=$1 AND passenger_id=$2 AND status IN ('pending','accepted')",
+      [trip_id, req.user.id]
+    );
+    if (dup.length) return res.status(400).json({ error: 'Ke tashmë një rezervim aktiv' });
+
+    const booking = {
+      id: uid(), trip_id, passenger_id: req.user.id,
+      seats: want, status: 'pending', message: message || '', created_at: Date.now()
+    };
+    await q(
+      'INSERT INTO bookings (id,trip_id,passenger_id,seats,status,message,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [booking.id, booking.trip_id, booking.passenger_id, booking.seats, booking.status, booking.message, booking.created_at]
+    );
+    notify(trip.driver_id, 'new_request', {
+      booking_id: booking.id, trip_id,
+      passenger: { name: req.user.name },
+      seats: want, message: booking.message,
+      route: `${trip.from_city} → ${trip.to_city}`,
+      date: trip.date
     });
-  res.json(result);
+    res.json(booking);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/bookings', auth, (req, res) => {
-  const { trip_id, seats, message } = req.body;
-  const data  = db();
-  const trip  = data.trips.find(t => t.id === trip_id);
+app.put('/api/bookings/:id', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['accepted', 'refused'].includes(status))
+      return res.status(400).json({ error: 'Status i pavlefshëm' });
 
-  if (!trip || trip.status !== 'active')
-    return res.status(400).json({ error: 'Udëtimi nuk është i disponueshëm' });
-  if (trip.driver_id === req.user.id)
-    return res.status(400).json({ error: 'Nuk mund të rezervosh udëtimin tënd' });
+    const { rows: [b] } = await q('SELECT * FROM bookings WHERE id=$1', [req.params.id]);
+    if (!b) return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
 
-  const want = parseInt(seats) || 1;
-  if (trip.seats_available < want)
-    return res.status(400).json({ error: 'Nuk ka vende të mjaftueshme' });
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [b.trip_id]);
+    if (!trip || trip.driver_id !== req.user.id) return res.status(403).json({ error: 'Nuk keni akses' });
+    if (b.status !== 'pending') return res.status(400).json({ error: 'Rezervimi nuk është në pritje' });
 
-  const dup = data.bookings.find(b =>
-    b.trip_id === trip_id && b.passenger_id === req.user.id &&
-    ['pending','accepted'].includes(b.status)
-  );
-  if (dup) return res.status(400).json({ error: 'Ke tashmë një rezervim aktiv' });
-
-  const booking = {
-    id: uid(), trip_id,
-    passenger_id: req.user.id,
-    seats: want,
-    status: 'pending',
-    message: message || '',
-    created_at: Date.now()
-  };
-  data.bookings.push(booking);
-  save(data);
-
-  notify(trip.driver_id, 'new_request', {
-    booking_id: booking.id, trip_id,
-    passenger: { name: req.user.name },
-    seats: want, message: booking.message,
-    route: `${trip.from_city} → ${trip.to_city}`,
-    date: trip.date
-  });
-  res.json(booking);
-});
-
-app.put('/api/bookings/:id', auth, (req, res) => {
-  const { status } = req.body;
-  if (!['accepted','refused'].includes(status))
-    return res.status(400).json({ error: 'Status i pavlefshëm' });
-
-  const data  = db();
-  const bIdx  = data.bookings.findIndex(b => b.id === req.params.id);
-  if (bIdx < 0) return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
-
-  const b    = data.bookings[bIdx];
-  const trip = data.trips.find(t => t.id === b.trip_id);
-  if (!trip || trip.driver_id !== req.user.id)
-    return res.status(403).json({ error: 'Nuk keni akses' });
-  if (b.status !== 'pending')
-    return res.status(400).json({ error: 'Rezervimi nuk është në pritje' });
-
-  data.bookings[bIdx].status = status;
-
-  if (status === 'accepted') {
-    const tIdx = data.trips.findIndex(t => t.id === b.trip_id);
-    data.trips[tIdx].seats_available = Math.max(0, data.trips[tIdx].seats_available - b.seats);
-  }
-  save(data);
-
-  notify(b.passenger_id, 'booking_update', {
-    booking_id: b.id, status,
-    route: `${trip.from_city} → ${trip.to_city}`,
-    date: trip.date, time: trip.time,
-    driver_name: req.user.name
-  });
-  res.json({ ok: true });
+    await q('UPDATE bookings SET status=$1 WHERE id=$2', [status, b.id]);
+    if (status === 'accepted') {
+      await q('UPDATE trips SET seats_available = GREATEST(0, seats_available - $1) WHERE id=$2', [b.seats, trip.id]);
+    }
+    notify(b.passenger_id, 'booking_update', {
+      booking_id: b.id, status,
+      route: `${trip.from_city} → ${trip.to_city}`,
+      date: trip.date, time: trip.time,
+      driver_name: req.user.name
+    });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── STRIPE CHECKOUT ──────────────────────────────────────────────────────
 app.post('/api/bookings/:id/checkout', auth, async (req, res) => {
   try {
-    const data = db();
-    const b    = data.bookings.find(b => b.id === req.params.id);
-    if (!b)                          return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
+    const { rows: [b] } = await q('SELECT * FROM bookings WHERE id=$1', [req.params.id]);
+    if (!b)                             return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
     if (b.passenger_id !== req.user.id) return res.status(403).json({ error: 'Nuk keni akses' });
-    if (b.status !== 'accepted')     return res.status(400).json({ error: 'Rezervimi duhet të pranohet fillimisht' });
-    if (b.payment_status === 'paid') return res.status(400).json({ error: 'Tashmë është paguar' });
+    if (b.status !== 'accepted')        return res.status(400).json({ error: 'Rezervimi duhet të pranohet fillimisht' });
+    if (b.payment_status === 'paid')    return res.status(400).json({ error: 'Tashmë është paguar' });
 
-    const trip = data.trips.find(t => t.id === b.trip_id);
-    const drv  = trip ? data.users.find(u => u.id === trip.driver_id) : null;
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [b.trip_id]);
+    let drv = null;
+    if (trip) {
+      const { rows } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
+      drv = rows[0] || null;
+    }
+
     const base = process.env.FRONTEND_URL || 'http://localhost:3001';
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -537,41 +549,29 @@ app.post('/api/bookings/:id/checkout', auth, async (req, res) => {
       success_url: `${base}/dashboard?payment=success&booking=${b.id}`,
       cancel_url:  `${base}/dashboard?payment=cancel`,
     });
-
     res.json({ url: session.url });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── STRIPE WEBHOOK ───────────────────────────────────────────────────────
-app.post('/api/stripe/webhook', (req, res) => {
+app.post('/api/stripe/webhook', async (req, res) => {
   const sig    = req.headers['stripe-signature'];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
-
   try {
     event = secret
       ? stripe.webhooks.constructEvent(req.rawBody, sig, secret)
       : JSON.parse(req.rawBody?.toString() || '{}');
-  } catch(e) {
-    return res.status(400).send(`Webhook Error: ${e.message}`);
-  }
+  } catch(e) { return res.status(400).send(`Webhook Error: ${e.message}`); }
 
   if (event.type === 'checkout.session.completed') {
     const bookingId = event.data.object.metadata?.booking_id;
     if (bookingId) {
-      const data = db();
-      const bIdx = data.bookings.findIndex(b => b.id === bookingId);
-      if (bIdx >= 0 && data.bookings[bIdx].payment_status !== 'paid') {
-        data.bookings[bIdx].payment_status = 'paid';
-        data.bookings[bIdx].paid_at        = Date.now();
-        save(data);
-
-        const b         = data.bookings[bIdx];
-        const trip      = data.trips.find(t => t.id === b.trip_id);
-        const passenger = data.users.find(u => u.id === b.passenger_id);
-
+      const { rows: [b] } = await q('SELECT * FROM bookings WHERE id=$1', [bookingId]);
+      if (b && b.payment_status !== 'paid') {
+        await q("UPDATE bookings SET payment_status='paid', paid_at=$1 WHERE id=$2", [Date.now(), bookingId]);
+        const { rows: [trip] }      = await q('SELECT * FROM trips WHERE id=$1', [b.trip_id]);
+        const { rows: [passenger] } = await q('SELECT * FROM users WHERE id=$1', [b.passenger_id]);
         notify(trip?.driver_id, 'payment_confirmed', {
           booking_id:      b.id,
           passenger_name:  passenger?.name  || '',
@@ -585,33 +585,37 @@ app.post('/api/stripe/webhook', (req, res) => {
       }
     }
   }
-
   res.json({ received: true });
 });
 
 // ─── MESSAGES API ─────────────────────────────────────────────────────────
-app.get('/api/messages/:booking_id', auth, (req, res) => {
-  const data    = db();
-  const booking = data.bookings.find(b => b.id === req.params.booking_id);
-  if (!booking) return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
+app.get('/api/messages/:booking_id', auth, async (req, res) => {
+  try {
+    const { rows: [booking] } = await q('SELECT * FROM bookings WHERE id=$1', [req.params.booking_id]);
+    if (!booking) return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
 
-  const trip    = data.trips.find(t => t.id === booking.trip_id);
-  const isParty = booking.passenger_id === req.user.id || trip?.driver_id === req.user.id;
-  if (!isParty) return res.status(403).json({ error: 'Nuk keni akses' });
+    const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [booking.trip_id]);
+    const isParty = booking.passenger_id === req.user.id || trip?.driver_id === req.user.id;
+    if (!isParty) return res.status(403).json({ error: 'Nuk keni akses' });
 
-  const messages = (data.messages || [])
-    .filter(m => m.booking_id === req.params.booking_id)
-    .sort((a, b) => a.created_at - b.created_at);
-  res.json(messages);
+    const { rows } = await q(
+      'SELECT * FROM messages WHERE booking_id=$1 ORDER BY created_at',
+      [req.params.booking_id]
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── HEALTH ───────────────────────────────────────────────────────────────
-app.get('/health', (_, res) => {
-  const data = db();
-  res.json({ status: 'ok', users: data.users.length, trips: data.trips.length });
+app.get('/health', async (_, res) => {
+  try {
+    const { rows: [u] } = await q('SELECT COUNT(*) FROM users');
+    const { rows: [t] } = await q('SELECT COUNT(*) FROM trips');
+    res.json({ status: 'ok', users: parseInt(u.count), trips: parseInt(t.count) });
+  } catch(e) { res.status(500).json({ status: 'db_error', error: e.message }); }
 });
 
-// ─── SPA FALLBACK (must be last) ──────────────────────────────────────────
+// ─── SPA FALLBACK ─────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.includes('.')) return next();
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -621,12 +625,19 @@ app.use((req, res) => {
 });
 
 // ─── START ────────────────────────────────────────────────────────────────
-seed();
-
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`\n🇦🇱  AlbaWay → http://localhost:${PORT}\n`);
-  console.log('   Kontet demo: arben@demo.com / demo123\n');
-});
+
+initDb()
+  .then(seed)
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`\n🇦🇱  AlbaWay → http://localhost:${PORT}\n`);
+      console.log('   Kontet demo: arben@demo.com / demo123\n');
+    });
+  })
+  .catch(err => {
+    console.error('❌  DB init failed:', err);
+    process.exit(1);
+  });
 
 module.exports = { server, io };
