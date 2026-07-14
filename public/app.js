@@ -141,7 +141,8 @@ function route() {
     publish:   () => renderPublish(),
     dashboard: () => renderDashboard(),
   };
-  if (path.startsWith('trip/')) { renderTripDetail(path.slice(5)); return; }
+  if (path.startsWith('trip/'))  { renderTripDetail(path.slice(5)); return; }
+  if (path.startsWith('reset'))  { renderReset(params.token || ''); return; }
   (pages[path] || renderHome)();
 }
 
@@ -787,6 +788,7 @@ function openModal(type) {
       </div>
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="li-e" type="email" placeholder="email@example.com" autofocus/></div>
       <div class="form-group"><label class="form-label">Fjalëkalimi</label><input class="form-input" id="li-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div id="login-info" style="display:none;margin:8px 0 4px;padding:10px 14px;background:rgba(228,30,32,.1);border:1px solid rgba(228,30,32,.3);border-radius:10px;font-size:.82rem;color:#f87171"></div>
       <button class="modal-submit" onclick="doLogin()">Hyr →</button>
       <p class="modal-switch">Nuk ke llogari? <a onclick="openModal('register')">Regjistrohu</a></p>`);
   } else {
@@ -807,7 +809,18 @@ function closeModalNow() { document.getElementById('modal-overlay').classList.ad
 async function doLogin() {
   const e=document.getElementById('li-e')?.value?.trim(), p=document.getElementById('li-p')?.value;
   if (!e||!p) { toast('Plotëso fushat','error'); return; }
-  try { await apiLogin(e,p); } catch(err) { toast(err.message,'error'); }
+  try {
+    await apiLogin(e,p);
+  } catch(err) {
+    toast(err.message,'error');
+    if (err.message.includes('bllokua') || err.message.includes('bllokuar')) {
+      const info = document.getElementById('login-info');
+      if (info) {
+        info.innerHTML = '📧 Kontrollo emailin tënd — një link rimëkëmbjeje u dërgua.';
+        info.style.display = 'block';
+      }
+    }
+  }
 }
 async function doRegister() {
   const n=document.getElementById('rg-n')?.value?.trim(), e=document.getElementById('rg-e')?.value?.trim(),
@@ -1003,6 +1016,47 @@ function sendMsg(bookingId, toId) {
   if (!text || !socket) return;
   input.value = '';
   socket.emit('send_message', { booking_id: bookingId, to_id: toId, text });
+}
+
+// ─── RESET PASSWORD ────────────────────────────────────────────────────────
+function renderReset(token) {
+  if (!token) { navigate('home'); return; }
+  document.getElementById('app').innerHTML = `
+  <div class="page">
+    <div style="max-width:420px;margin:80px auto;padding:0 20px">
+      <div class="glass-card reveal">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="font-size:2.5rem">🔑</div>
+          <div class="modal-title" style="margin:8px 0">Rivendos fjalëkalimin</div>
+          <p style="color:rgba(255,255,255,.4);font-size:.875rem;margin:0">Zgjidh një fjalëkalim të ri të sigurt.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fjalëkalimi i ri *</label>
+          <input class="form-input" id="rp-p1" type="password" placeholder="•••••••• (min. 6 karaktere)" autofocus/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Konfirmo fjalëkalimin *</label>
+          <input class="form-input" id="rp-p2" type="password" placeholder="••••••••"
+            onkeydown="if(event.key==='Enter')doReset('${esc(token)}')"/>
+        </div>
+        <button class="modal-submit" onclick="doReset('${esc(token)}')">✅ Rivendos dhe hyr →</button>
+      </div>
+    </div>
+  </div>`;
+  if (window.gsap) gsap.from('.glass-card', { opacity:0, y:30, duration:.6, ease:'power3.out' });
+}
+
+async function doReset(token) {
+  const p1 = document.getElementById('rp-p1')?.value || '';
+  const p2 = document.getElementById('rp-p2')?.value || '';
+  if (p1.length < 6)  { toast('Fjalëkalimi duhet të ketë të paktën 6 karaktere.','error'); return; }
+  if (p1 !== p2)      { toast('Fjalëkalimet nuk përputhen.','error'); return; }
+  try {
+    await apiFetch('/auth/reset','POST',{ token, password: p1 });
+    toast('✅ Fjalëkalimi u rivendos! Tani mund të hyni.','success');
+    navigate('home');
+    setTimeout(() => openModal('login'), 600);
+  } catch(e) { toast(e.message,'error'); }
 }
 
 // ─── PAYMENT ───────────────────────────────────────────────────────────────

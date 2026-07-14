@@ -14,6 +14,7 @@ const dns        = require('dns').promises;
 const bcrypt     = require('bcryptjs');
 const rateLimit  = require('express-rate-limit');
 const helmet     = require('helmet');
+const nodemailer = require('nodemailer');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -59,11 +60,58 @@ const q = (text, params) => pool.query(text, params);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Shumë tentativa. Provoni sërish pas 15 minutash.' }
 });
+
+const failedAttempts = new Map(); // email → count
+
+function mailTransport() {
+  return nodemailer.createTransport({
+    host:   process.env.SMTP_HOST || 'smtp.gmail.com',
+    port:   parseInt(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  });
+}
+
+async function sendResetEmail(email, name, token) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('SMTP not configured — cannot send reset email to', email);
+    return;
+  }
+  const base = process.env.FRONTEND_URL || 'https://albaway.ch';
+  const link = `${base}/reset?token=${token}`;
+  await mailTransport().sendMail({
+    from:    `"AlbaWay 🇦🇱" <${process.env.SMTP_USER}>`,
+    to:      email,
+    subject: 'AlbaWay — Rimëkëmbja e llogarisë',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#fff;border-radius:16px">
+        <div style="text-align:center;margin-bottom:28px">
+          <div style="font-size:2.5rem">🇦🇱</div>
+          <h1 style="color:#E41E20;margin:8px 0;font-size:1.6rem">AlbaWay</h1>
+        </div>
+        <p style="margin:0 0 12px">Mirëdita <strong>${name}</strong>,</p>
+        <p style="color:rgba(255,255,255,.7);margin:0 0 24px">
+          Llogaria juaj u bllokua pas <strong>3 tentativave të dështuara</strong> të hyrjes.
+          Klikoni butonin më poshtë për të rivendosur fjalëkalimin:
+        </p>
+        <div style="text-align:center;margin:32px 0">
+          <a href="${link}"
+             style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;font-size:1rem;display:inline-block">
+            🔑 Rivendos fjalëkalimin
+          </a>
+        </div>
+        <p style="color:rgba(255,255,255,.35);font-size:.82rem">⏱ Ky link është i vlefshëm për 1 orë.</p>
+        <p style="color:rgba(255,255,255,.35);font-size:.82rem">Nëse nuk jeni ju, injoroni këtë email.</p>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:24px 0"/>
+        <p style="color:rgba(255,255,255,.2);font-size:.75rem;text-align:center">AlbaWay · Bashkudhëtim shqiptar 🇦🇱</p>
+      </div>`
+  });
+}
 
 // ─── INIT DB ──────────────────────────────────────────────────────────────
 async function initDb() {
@@ -75,8 +123,14 @@ async function initDb() {
     phone TEXT DEFAULT '',
     rating FLOAT DEFAULT 5.0,
     trips_count INT DEFAULT 0,
+    locked BOOLEAN DEFAULT FALSE,
+    reset_token TEXT,
+    reset_token_expires BIGINT,
     created_at BIGINT NOT NULL
   )`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked BOOLEAN DEFAULT FALSE`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT`);
   await q(`CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY,
     driver_id UUID REFERENCES users(id),
@@ -323,15 +377,60 @@ app.post('/api/register', authLimiter, async (req, res) => {
 app.post('/api/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { rows: [user] } = await q('SELECT * FROM users WHERE email=$1', [email]);
-    if (!user || !(await verifyPassword(password, user.password)))
-      return res.status(400).json({ error: 'Email ose fjalëkalim i gabuar' });
+    if (!email || !password) return res.status(400).json({ error: 'Plotëso fushat' });
+
+    const key = email.toLowerCase().trim();
+    const { rows: [user] } = await q('SELECT * FROM users WHERE LOWER(email)=$1', [key]);
+
+    if (user?.locked) {
+      return res.status(403).json({ error: 'Llogaria është bllokuar. Kontrollo emailin tënd për rimëkëmbjen.' });
+    }
+
+    if (!user || !(await verifyPassword(password, user.password))) {
+      const attempts = (failedAttempts.get(key) || 0) + 1;
+      failedAttempts.set(key, attempts);
+
+      if (attempts >= 3 && user) {
+        const resetToken   = uid();
+        const resetExpires = Date.now() + 60 * 60 * 1000;
+        await q('UPDATE users SET locked=TRUE, reset_token=$1, reset_token_expires=$2 WHERE id=$3',
+          [resetToken, resetExpires, user.id]);
+        failedAttempts.delete(key);
+        sendResetEmail(user.email, user.name, resetToken).catch(e => console.error('email error:', e.message));
+        return res.status(403).json({ error: 'Llogaria u bllokua. Kontrollo emailin tënd për udhëzimet e rimëkëmbjes.' });
+      }
+
+      const left = 3 - attempts;
+      return res.status(400).json({ error: `Email ose fjalëkalim i gabuar. ${left} tentativ${left === 1 ? 'ë' : 'a'} të mbetura.` });
+    }
+
+    failedAttempts.delete(key);
     if (!user.password.startsWith('$2')) {
       await q('UPDATE users SET password=$1 WHERE id=$2', [await hashPassword(password), user.id]);
     }
     const token = createToken(user.id);
-    const { password: _, ...safe } = user;
+    const { password: _, reset_token: __, reset_token_expires: ___, ...safe } = user;
     res.json({ token, user: safe });
+  } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
+});
+
+app.post('/api/auth/reset', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password || password.length < 6)
+      return res.status(400).json({ error: 'Të dhëna të pasakta' });
+
+    const { rows: [user] } = await q(
+      'SELECT * FROM users WHERE reset_token=$1 AND reset_token_expires > $2',
+      [token, Date.now()]
+    );
+    if (!user) return res.status(400).json({ error: 'Link i pavlefshëm ose i skaduar.' });
+
+    await q(
+      'UPDATE users SET password=$1, locked=FALSE, reset_token=NULL, reset_token_expires=NULL WHERE id=$2',
+      [await hashPassword(password), user.id]
+    );
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
 });
 
