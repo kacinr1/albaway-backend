@@ -241,7 +241,7 @@ async function renderHome() {
         <span class="h1-white">Udhëto kudo</span>
         <span class="h1-red">në Shqipëri 🇦🇱</span>
       </h1>
-      <p class="hero-sub">Kovojazhim i sigurt mes shqiptarëve të Evropës. Nga Zürihu në Prishtinë — bashkë.</p>
+      <p class="hero-sub">Bashkudhëtim i sigurt mes shqiptarëve të Evropës. Nga Zürihu në Prishtinë — bashkë.</p>
       <div class="search-card">
         <div class="sf"><span class="sf-icon">🔵</span><input id="h-from" placeholder="Nga... (Zürich, Stuttgart...)" list="cl"/></div>
         <div class="sd"></div>

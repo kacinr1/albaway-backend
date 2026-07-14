@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "albaway-backend",
   "version": "1.0.0",
-  "description": "Serveur AlbaWay - Kovojazhim shqiptar",
+  "description": "Serveur AlbaWay - Bashkudhëtim shqiptar",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
