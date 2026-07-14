@@ -39,14 +39,6 @@ function uid() { return crypto.randomUUID(); }
 function hash(pw) { return crypto.createHash('sha256').update(pw + '_bbshqip_2026').digest('hex'); }
 
 // ─── SEED (demo data on first run) ────────────────────────────────────────
-// ─── 404 HANDLER ──────────────────────────────────────────────────────────
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') || req.path.includes('.')) return next();
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
-});
 
 // ─── RATINGS API ──────────────────────────────────────────────────────────
 app.post('/api/ratings', auth, (req, res) => {
@@ -574,6 +566,15 @@ app.post('/api/stripe/webhook', (req, res) => {
 app.get('/health', (_, res) => {
   const data = db();
   res.json({ status: 'ok', users: data.users.length, trips: data.trips.length });
+});
+
+// ─── SPA FALLBACK (must be last) ──────────────────────────────────────────
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.includes('.')) return next();
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
 // ─── START ────────────────────────────────────────────────────────────────
