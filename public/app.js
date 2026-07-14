@@ -330,6 +330,7 @@ async function renderHome() {
   </div>`;
 
   animateHero();
+  attachAutocomplete('h-from'); attachAutocomplete('h-to');
   document.querySelectorAll('[data-to]').forEach(el => {
     if (!window.gsap) return;
     ScrollTrigger.create({ trigger:el, start:'top 90%', once:true,
@@ -372,6 +373,7 @@ async function renderSearch(params={}) {
     </div>
   </div>`;
 
+  attachAutocomplete('s-from'); attachAutocomplete('s-to');
   try {
     const q = new URLSearchParams();
     if (from) q.set('from',from); if (to) q.set('to',to); if (date) q.set('date',date);
@@ -576,6 +578,7 @@ function renderPublish() {
   </div>`;
   animateReveal();
   selVT('car');
+  attachAutocomplete('p-from'); attachAutocomplete('p-to');
 }
 
 let _curVT='car', _curSeats=3;
@@ -849,8 +852,93 @@ function fmtDate(d='') { if(!d) return ''; const [y,m,day]=d.split('-'); const m
 function today() { return new Date().toISOString().slice(0,10); }
 function esc(s='') { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function vehicleIcon(t) { return {car:'🚗',minivan:'🚐',suv:'🚙',bus:'🚌'}[t]||'🚗'; }
-const CITIES=['Zürich','Bern','Geneva','Basel','Stuttgart','München','Frankfurt','Berlin','Wien','Salzburg','London','Paris','Milano','Tirana','Durrës','Shkodër','Vlorë','Gjirokastër','Korçë','Prishtinë','Mitrovicë','Pejë','Gjakovë','Gjilan','Shkup','Tetovë'];
-function cdl() { return `<datalist id="cl">${CITIES.map(c=>`<option value="${c}">`).join('')}</datalist>`; }
+const CITIES_ALL = [
+  'Zürich','Bern','Geneva','Basel','Stuttgart','München','Frankfurt','Berlin',
+  'Wien','Salzburg','London','Paris','Milano','Brussels','Amsterdam','Lyon',
+  'Tirana','Durrës','Shkodër','Vlorë','Gjirokastër','Korçë','Berat','Elbasan','Fier','Lushnjë',
+  'Prishtinë','Mitrovicë','Pejë','Gjakovë','Gjilan','Ferizaj','Vushtrri',
+  'Shkup','Tetovë','Bitola','Ohrid',
+  'Beograd','Zagreb','Ljubljana','Sarajevo','Podgorica'
+];
+
+const CITY_ALIASES = {
+  'zurich':'Zürich','zuerich':'Zürich','zurigo':'Zürich',
+  'munich':'München','munchen':'München','muenchen':'München',
+  'geneve':'Geneva','genf':'Geneva','genève':'Geneva','ginebra':'Geneva',
+  'vienna':'Wien','vienne':'Wien',
+  'berne':'Bern',
+  'pristina':'Prishtinë','prishtina':'Prishtinë','kosova':'Prishtinë','kosovo':'Prishtinë',
+  'tirane':'Tirana','tiranë':'Tirana',
+  'durres':'Durrës','durresso':'Durrës',
+  'shkoder':'Shkodër','scutari':'Shkodër',
+  'vlore':'Vlorë','vlora':'Vlorë','valona':'Vlorë',
+  'gjirokaster':'Gjirokastër','gjirokastra':'Gjirokastër','argyrokastron':'Gjirokastër',
+  'korce':'Korçë','korça':'Korçë',
+  'mitrovica':'Mitrovicë',
+  'peja':'Pejë','pec':'Pejë','peć':'Pejë',
+  'gjakova':'Gjakovë','djakovica':'Gjakovë',
+  'gnjilane':'Gjilan',
+  'skopje':'Shkup','uskup':'Shkup',
+  'tetovo':'Tetovë',
+  'bruxelles':'Brussels','brussel':'Brussels',
+  'milan':'Milano','mailand':'Milano',
+  'belgrade':'Beograd',
+};
+
+function normalizeCity(s) {
+  return s.toLowerCase()
+    .replace(/[àáâã]/g,'a').replace(/ä/g,'a').replace(/å/g,'a')
+    .replace(/[èéêë]/g,'e').replace(/ë/g,'e')
+    .replace(/[ìíîï]/g,'i').replace(/[òóôõ]/g,'o').replace(/ö/g,'o')
+    .replace(/[ùúûü]/g,'u').replace(/ü/g,'u')
+    .replace(/ç/g,'c').replace(/ñ/g,'n').replace(/ß/g,'ss')
+    .trim();
+}
+
+function cityMatch(query) {
+  const q = normalizeCity(query);
+  if (q.length < 2) return [];
+  const alias = CITY_ALIASES[q];
+  const results = CITIES_ALL.filter(c => normalizeCity(c).includes(q) || c.toLowerCase().includes(query.toLowerCase()));
+  if (alias && !results.includes(alias)) results.unshift(alias);
+  return [...new Set(results)].slice(0, 7);
+}
+
+function attachAutocomplete(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input || input.dataset.ac) return;
+  input.dataset.ac = '1';
+  input.removeAttribute('list');
+  const wrap = input.closest('.sf') || input.parentNode;
+  wrap.style.position = 'relative';
+  const drop = document.createElement('div');
+  drop.className = 'ac-drop'; drop.id = 'acd-'+inputId;
+  wrap.appendChild(drop);
+
+  input.addEventListener('input', () => {
+    const m = cityMatch(input.value);
+    drop.innerHTML = m.length && input.value
+      ? m.map(c=>`<div class="ac-item" onmousedown="pickCity('${inputId}','${esc(c)}')">${c}</div>`).join('')
+      : '';
+  });
+  input.addEventListener('keydown', e => {
+    const items = [...drop.querySelectorAll('.ac-item')];
+    const sel   = drop.querySelector('.ac-sel');
+    const idx   = items.indexOf(sel);
+    if (e.key==='ArrowDown'){ e.preventDefault(); items.forEach(i=>i.classList.remove('ac-sel')); (items[idx+1]||items[0])?.classList.add('ac-sel'); }
+    if (e.key==='ArrowUp')  { e.preventDefault(); items.forEach(i=>i.classList.remove('ac-sel')); (items[idx-1]||items[items.length-1])?.classList.add('ac-sel'); }
+    if (e.key==='Enter' && sel){ pickCity(inputId, sel.textContent); e.preventDefault(); }
+    if (e.key==='Escape') drop.innerHTML='';
+  });
+  input.addEventListener('blur', ()=>setTimeout(()=>{drop.innerHTML='';},160));
+}
+
+function pickCity(inputId, city) {
+  const i = document.getElementById(inputId); if (i) i.value = city;
+  const d = document.getElementById('acd-'+inputId); if (d) d.innerHTML='';
+}
+
+function cdl() { return ''; }
 function isPast(dateStr) { if(!dateStr) return false; return new Date(dateStr) < new Date(); }
 
 // ─── CHAT ──────────────────────────────────────────────────────────────────
