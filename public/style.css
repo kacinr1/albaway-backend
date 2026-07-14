@@ -86,6 +86,7 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
 .nav-publish:hover{box-shadow:0 0 30px rgba(228,30,32,.5) !important}
 
 .nav-right{display:flex;align-items:center;gap:10px}
+#user-menu{display:flex;align-items:center;gap:8px}
 .btn-nav-ghost{
   background:var(--glass);border:1px solid var(--border2);
   color:rgba(255,255,255,.75);padding:7px 18px;border-radius:100px;
