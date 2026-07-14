@@ -113,7 +113,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const params = Object.fromEntries(new URLSearchParams(location.search));
   if (params.payment === 'success') {
-    setTimeout(() => toast('✅ Pagesa u krye! Kontaktet janë të disponueshme.','success'), 500);
+    setTimeout(() => toast('✅ Pagesa u krye! Tani mund të chatoni me shoferin.','success'), 500);
     history.replaceState({}, '', '/dashboard');
   } else if (params.payment === 'cancel') {
     setTimeout(() => toast('Pagesa u anulua.','info'), 500);
@@ -161,7 +161,7 @@ function pushNotif(title, body) {
 // ─── SOCKET ────────────────────────────────────────────────────────────────
 function initSocket() {
   socket = io();
-  socket.on('connect', () => { if (me) socket.emit('identify', me.id); });
+  socket.on('connect', () => { if (me && token) socket.emit('identify', { id: me.id, token }); });
   socket.on('new_request', d => {
     showNotif('new_request','🔔 Kërkesë e re!',`${d.passenger.name} → ${d.route}`);
     pushNotif('AlbaWay — Kërkesë e re 🔔', `${d.passenger.name} kërkon vend → ${d.route}`);
@@ -179,14 +179,13 @@ function initSocket() {
     }
   });
   socket.on('payment_confirmed', d => {
-    showNotif('accepted','💳 Pagesa u bë!',
-      `${d.passenger_name} · ${d.route}${d.passenger_phone?' · 📞 '+d.passenger_phone:''}`);
+    showNotif('accepted','💳 Pagesa u bë!',`${d.passenger_name} · ${d.route}`);
     pushNotif('AlbaWay — Pagesë e konfirmuar 💳', `${d.passenger_name} pagoi · ${d.route}`);
     loadDriverTab();
   });
   socket.on('payment_success', () => {
-    showNotif('accepted','✅ Pagesa u konfirmua!','Tani mund të shihni numrin e shoferit.');
-    pushNotif('AlbaWay — Pagesë e suksesshme ✅', 'Tani mund të shihni numrin e shoferit.');
+    showNotif('accepted','✅ Pagesa u konfirmua!','Tani mund të chatoni me shoferin.');
+    pushNotif('AlbaWay — Pagesë e suksesshme ✅', 'Tani mund të chatoni me shoferin.');
     loadPassengerTab();
   });
   socket.on('new_message', msg => {
@@ -209,7 +208,7 @@ async function apiLogin(email, password) {
   token=r.token; me=r.user;
   localStorage.setItem('bbs_token',token);
   localStorage.setItem('bbs_user',JSON.stringify(me));
-  socket?.emit('identify',me.id);
+  socket?.emit('identify', { id: me.id, token });
   requestNotifPermission();
   updateNav(); closeModalNow();
   toast('Mirë se erdhe, '+me.name+'! 🇦🇱','success');
@@ -220,7 +219,7 @@ async function apiRegister(name,email,password,phone) {
   token=r.token; me=r.user;
   localStorage.setItem('bbs_token',token);
   localStorage.setItem('bbs_user',JSON.stringify(me));
-  socket?.emit('identify',me.id);
+  socket?.emit('identify', { id: me.id, token });
   requestNotifPermission();
   updateNav(); closeModalNow();
   toast('Mirë se vini, '+me.name+'! 🎉','success');
@@ -714,15 +713,10 @@ async function loadPassengerTab() {
         </div>` : ''}
         ${b.status==='accepted' && b.payment_status!=='paid' ? `
         <div style="background:rgba(0,61,130,.15);border:1px solid rgba(0,61,130,.35);border-radius:12px;padding:14px 16px;margin-top:12px">
-          <div style="font-size:.8rem;color:rgba(255,255,255,.55);margin-bottom:10px">✅ Rezervimi u pranua! Konfirmo pagesën për të shkëmbyer kontaktet.</div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.55);margin-bottom:10px">✅ Rezervimi u pranua! Paguaj për të hapur chatin me shoferin.</div>
           <button onclick="event.stopPropagation();doPay('${b.id}')" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:10px 0;border-radius:10px;font-size:.875rem;font-weight:700;width:100%;cursor:none">
-            💳 Paguaj ${b.trip?.price||0}€ — Shfaq kontaktin
+            💳 Paguaj ${b.trip?.price||0}€ — Hap chatin
           </button>
-        </div>` : ''}
-        ${b.payment_status==='paid' && b.trip?.driver?.phone ? `
-        <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:12px 16px;margin-top:12px">
-          <div style="font-size:.72rem;color:rgba(16,185,129,.7);font-weight:700;letter-spacing:1px;margin-bottom:4px">📞 KONTAKTI I SHOFERIT</div>
-          <div style="font-size:1rem;color:#34d399;font-weight:700">${esc(b.trip.driver.phone)}</div>
         </div>` : ''}
         ${b.message?`<div style="color:rgba(255,255,255,.35);font-size:.8rem;font-style:italic;margin-top:8px">"${esc(b.message)}"</div>`:''}
         ${b.status==='accepted' && !b.rated && isPast(b.trip?.date) ? `
@@ -756,11 +750,6 @@ async function showReqs(tripId, route) {
           <button class="btn-accept" onclick="respBook('${r.id}','accepted','${tripId}','${esc(route)}')">✅ Prano</button>
           <button class="btn-refuse" onclick="respBook('${r.id}','refused','${tripId}','${esc(route)}')">❌ Refuzo</button>
         </div>`:''}
-        ${r.payment_status==='paid' && r.passenger?.phone ? `
-        <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:8px 12px;margin-top:8px">
-          <div style="font-size:.7rem;color:rgba(16,185,129,.7);font-weight:700;letter-spacing:1px;margin-bottom:2px">📞 KONTAKTI I PASAGJERIT</div>
-          <div style="font-size:.9rem;color:#34d399;font-weight:700">${esc(r.passenger.phone)}</div>
-        </div>` : ''}
         ${r.status==='accepted' && r.payment_status==='paid' ? `
         <button onclick="openChat('${r.id}','${r.passenger?.id||''}','${esc(r.passenger?.name||'Pasagjer')}')"
           style="margin-top:10px;width:100%;background:linear-gradient(135deg,rgba(0,61,130,.5),rgba(0,61,130,.3));border:1px solid rgba(0,122,255,.35);color:#fff;padding:9px;border-radius:12px;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px">

@@ -11,6 +11,9 @@ const path       = require('path');
 const Stripe     = require('stripe');
 const { Pool }   = require('pg');
 const dns        = require('dns').promises;
+const bcrypt     = require('bcryptjs');
+const rateLimit  = require('express-rate-limit');
+const helmet     = require('helmet');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -39,14 +42,28 @@ const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: '*' } });
 
 app.use(cors());
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(express.json({
   verify: (req, res, buf) => { if (req.path === '/api/stripe/webhook') req.rawBody = buf; }
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-function uid()    { return crypto.randomUUID(); }
-function hash(pw) { return crypto.createHash('sha256').update(pw + '_bbshqip_2026').digest('hex'); }
+function uid() { return crypto.randomUUID(); }
+function legacyHash(pw) { return crypto.createHash('sha256').update(pw + '_bbshqip_2026').digest('hex'); }
+async function hashPassword(pw) { return bcrypt.hash(pw, 10); }
+async function verifyPassword(pw, stored) {
+  if (stored.startsWith('$2')) return bcrypt.compare(pw, stored);
+  return legacyHash(pw) === stored;
+}
 const q = (text, params) => pool.query(text, params);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Shumë tentativa. Provoni sërish pas 15 minutash.' }
+});
 
 // ─── INIT DB ──────────────────────────────────────────────────────────────
 async function initDb() {
@@ -117,7 +134,7 @@ async function seed() {
   const { rows } = await q('SELECT COUNT(*) FROM users');
   if (parseInt(rows[0].count) > 0) return;
 
-  const pw  = hash('demo123');
+  const pw  = await hashPassword('demo123');
   const now = Date.now();
   const drivers = [
     { id: uid(), name: 'Arben Krasniqi',  email: 'arben@demo.com',   phone: '+41 79 123 45 67', rating: 4.9, trips_count: 24 },
@@ -189,9 +206,10 @@ function auth(req, res, next) {
 const userSockets = new Map();
 
 io.on('connection', socket => {
-  socket.on('identify', userId => {
-    userSockets.set(userId, socket.id);
-    socket.userId = userId;
+  socket.on('identify', async ({ id, token: tok } = {}) => {
+    if (!id || !tok || tokens.get(tok) !== id) return;
+    userSockets.set(id, socket.id);
+    socket.userId = id;
   });
   socket.on('disconnect', () => {
     if (socket.userId) userSockets.delete(socket.userId);
@@ -279,7 +297,7 @@ app.get('/api/ratings/:user_id', async (req, res) => {
 });
 
 // ─── AUTH API ─────────────────────────────────────────────────────────────
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
     if (!name || !email || !password)
@@ -289,7 +307,7 @@ app.post('/api/register', async (req, res) => {
     if (existing.length) return res.status(400).json({ error: 'Ky email është i regjistruar' });
 
     const user = {
-      id: uid(), name, email, password: hash(password),
+      id: uid(), name, email, password: await hashPassword(password),
       phone: phone || '', rating: 5.0, trips_count: 0, created_at: Date.now()
     };
     await q(
@@ -299,21 +317,22 @@ app.post('/api/register', async (req, res) => {
     const token = createToken(user.id);
     const { password: _, ...safe } = user;
     res.json({ token, user: safe });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { rows: [user] } = await q(
-      'SELECT * FROM users WHERE email=$1 AND password=$2',
-      [email, hash(password)]
-    );
-    if (!user) return res.status(400).json({ error: 'Email ose fjalëkalim i gabuar' });
+    const { rows: [user] } = await q('SELECT * FROM users WHERE email=$1', [email]);
+    if (!user || !(await verifyPassword(password, user.password)))
+      return res.status(400).json({ error: 'Email ose fjalëkalim i gabuar' });
+    if (!user.password.startsWith('$2')) {
+      await q('UPDATE users SET password=$1 WHERE id=$2', [await hashPassword(password), user.id]);
+    }
     const token = createToken(user.id);
     const { password: _, ...safe } = user;
     res.json({ token, user: safe });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
 });
 
 app.get('/api/me', auth, (req, res) => {
@@ -378,7 +397,7 @@ app.get('/api/trips/:id', async (req, res) => {
 
     res.json({
       ...trip,
-      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count, phone: drv.phone } : null,
+      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count } : null,
       passengers
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -435,12 +454,11 @@ app.get('/api/bookings/mine', auth, async (req, res) => {
     const result = await Promise.all(bookings.map(async b => {
       const { rows: [trip] }  = await q('SELECT * FROM trips WHERE id=$1', [b.trip_id]);
       const { rows: [drv] }   = trip ? await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]) : { rows: [] };
-      const isPaid = b.payment_status === 'paid';
       return {
         ...b,
         trip: trip ? {
           ...trip,
-          driver: drv ? { name: drv.name, rating: drv.rating, phone: isPaid ? (drv.phone || '') : null } : null
+          driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating } : null
         } : null
       };
     }));
@@ -456,10 +474,9 @@ app.get('/api/trips/:id/requests', auth, async (req, res) => {
     const { rows: bookings } = await q('SELECT * FROM bookings WHERE trip_id=$1', [trip.id]);
     const result = await Promise.all(bookings.map(async b => {
       const { rows: [p] } = await q('SELECT * FROM users WHERE id=$1', [b.passenger_id]);
-      const isPaid = b.payment_status === 'paid';
       return {
         ...b,
-        passenger: p ? { id: p.id, name: p.name, rating: p.rating, phone: isPaid ? (p.phone || '') : null } : null
+        passenger: p ? { id: p.id, name: p.name, rating: p.rating } : null
       };
     }));
     res.json(result);
@@ -572,13 +589,14 @@ app.post('/api/bookings/:id/checkout', auth, async (req, res) => {
 
 // ─── STRIPE WEBHOOK ───────────────────────────────────────────────────────
 app.post('/api/stripe/webhook', async (req, res) => {
-  const sig    = req.headers['stripe-signature'];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('STRIPE_WEBHOOK_SECRET not configured — webhook rejected');
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
   let event;
   try {
-    event = secret
-      ? stripe.webhooks.constructEvent(req.rawBody, sig, secret)
-      : JSON.parse(req.rawBody?.toString() || '{}');
+    event = stripe.webhooks.constructEvent(req.rawBody, req.headers['stripe-signature'], secret);
   } catch(e) { return res.status(400).send(`Webhook Error: ${e.message}`); }
 
   if (event.type === 'checkout.session.completed') {
@@ -590,9 +608,8 @@ app.post('/api/stripe/webhook', async (req, res) => {
         const { rows: [trip] }      = await q('SELECT * FROM trips WHERE id=$1', [b.trip_id]);
         const { rows: [passenger] } = await q('SELECT * FROM users WHERE id=$1', [b.passenger_id]);
         notify(trip?.driver_id, 'payment_confirmed', {
-          booking_id:      b.id,
-          passenger_name:  passenger?.name  || '',
-          passenger_phone: passenger?.phone || '',
+          booking_id:     b.id,
+          passenger_name: passenger?.name || '',
           route: trip ? `${trip.from_city} → ${trip.to_city}` : ''
         });
         notify(b.passenger_id, 'payment_success', {
