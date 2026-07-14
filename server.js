@@ -1,7 +1,6 @@
 'use strict';
 
 require('dotenv').config();
-require('dns').setDefaultResultOrder('ipv4first');
 
 const express    = require('express');
 const http       = require('http');
@@ -11,12 +10,29 @@ const crypto     = require('crypto');
 const path       = require('path');
 const Stripe     = require('stripe');
 const { Pool }   = require('pg');
+const dns        = require('dns').promises;
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const pool   = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+
+let pool;
+
+async function createPool() {
+  const dbUrl  = new URL(process.env.DATABASE_URL);
+  let   host   = dbUrl.hostname;
+  try {
+    const [ipv4] = await dns.resolve4(host);
+    host = ipv4;
+  } catch(_) {}
+  pool = new Pool({
+    host,
+    port:     parseInt(dbUrl.port) || 5432,
+    database: dbUrl.pathname.replace(/^\//, ''),
+    user:     decodeURIComponent(dbUrl.username),
+    password: decodeURIComponent(dbUrl.password),
+    ssl:      { rejectUnauthorized: false },
+    max:      10,
+  });
+}
 
 const app    = express();
 const server = http.createServer(app);
@@ -628,7 +644,8 @@ app.use((req, res) => {
 // ─── START ────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 
-initDb()
+createPool()
+  .then(initDb)
   .then(seed)
   .then(() => {
     server.listen(PORT, () => {
