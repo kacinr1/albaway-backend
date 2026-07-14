@@ -164,6 +164,17 @@ function initSocket() {
     showNotif('accepted','✅ Pagesa u konfirmua!','Tani mund të shihni numrin e shoferit.');
     loadPassengerTab();
   });
+  socket.on('new_message', msg => {
+    const chatMsgs = document.getElementById('chat-msgs');
+    if (chatMsgs && window._activeChat?.bookingId === msg.booking_id) {
+      const ph = chatMsgs.querySelector('.chat-placeholder');
+      if (ph) ph.remove();
+      chatMsgs.insertAdjacentHTML('beforeend', chatBubble(msg));
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    } else if (msg.from_id !== me?.id) {
+      showNotif('new_request','💬 Mesazh i ri!', `${msg.from_name}: ${msg.text.slice(0,60)}`);
+    }
+  });
 }
 
 // ─── AUTH ──────────────────────────────────────────────────────────────────
@@ -662,6 +673,11 @@ async function loadPassengerTab() {
           <div style="color:rgba(255,255,255,.4);font-size:.82rem;margin-top:4px">📅 ${fmtDate(b.trip?.date)} · ${esc(b.trip?.time||'')} · ${b.trip?.price||0}€ · ${esc(b.trip?.driver?.name||'?')}</div></div>
           <span class="badge ${bc}">${bl.join(' ')}</span>
         </div>
+        ${b.status==='accepted' ? `
+        <button onclick="event.stopPropagation();openChat('${b.id}','${b.trip?.driver_id||''}','${esc(b.trip?.driver?.name||'Shofer')}')"
+          style="margin-top:10px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:8px;border-radius:10px;font-size:.82rem;font-weight:600">
+          💬 Chato me shoferin
+        </button>` : ''}
         ${b.status==='accepted' && b.payment_status!=='paid' ? `
         <div style="background:rgba(0,61,130,.15);border:1px solid rgba(0,61,130,.35);border-radius:12px;padding:14px 16px;margin-top:12px">
           <div style="font-size:.8rem;color:rgba(255,255,255,.55);margin-bottom:10px">✅ Rezervimi u pranua! Konfirmo pagesën për të shkëmbyer kontaktet.</div>
@@ -711,6 +727,11 @@ async function showReqs(tripId, route) {
           <div style="font-size:.7rem;color:rgba(16,185,129,.7);font-weight:700;letter-spacing:1px;margin-bottom:2px">📞 KONTAKTI I PASAGJERIT</div>
           <div style="font-size:.9rem;color:#34d399;font-weight:700">${esc(r.passenger.phone)}</div>
         </div>` : ''}
+        ${r.status==='accepted' ? `
+        <button onclick="openChat('${r.id}','${r.passenger?.id||''}','${esc(r.passenger?.name||'Pasagjer')}')"
+          style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:7px;border-radius:9px;font-size:.8rem;font-weight:600">
+          💬 Chato me pasagjerin
+        </button>` : ''}
       </div>`).join('')}`);
 }
 async function respBook(bid, status, tripId, route) {
@@ -831,6 +852,46 @@ function vehicleIcon(t) { return {car:'🚗',minivan:'🚐',suv:'🚙',bus:'🚌
 const CITIES=['Zürich','Bern','Geneva','Basel','Stuttgart','München','Frankfurt','Berlin','Wien','Salzburg','London','Paris','Milano','Tirana','Durrës','Shkodër','Vlorë','Gjirokastër','Korçë','Prishtinë','Mitrovicë','Pejë','Gjakovë','Gjilan','Shkup','Tetovë'];
 function cdl() { return `<datalist id="cl">${CITIES.map(c=>`<option value="${c}">`).join('')}</datalist>`; }
 function isPast(dateStr) { if(!dateStr) return false; return new Date(dateStr) < new Date(); }
+
+// ─── CHAT ──────────────────────────────────────────────────────────────────
+async function openChat(bookingId, otherUserId, otherName) {
+  window._activeChat = { bookingId, otherUserId };
+  let messages = [];
+  try { messages = await apiFetch('/messages/'+bookingId); } catch(e) {}
+  openModalHTML(`
+    <button class="modal-close" onclick="closeModalNow()">✕</button>
+    <div class="modal-title">💬 ${esc(otherName)}</div>
+    <div id="chat-msgs" style="height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px;margin-bottom:14px">
+      ${messages.length
+        ? messages.map(m => chatBubble(m)).join('')
+        : '<div class="chat-placeholder" style="text-align:center;color:rgba(255,255,255,.3);font-size:.85rem;margin:auto">Nuk ka mesazhe akoma</div>'}
+    </div>
+    <div style="display:flex;gap:8px">
+      <input id="chat-input" class="form-input" style="flex:1" placeholder="Shkruaj mesazhin..."
+        onkeydown="if(event.key==='Enter')sendMsg('${bookingId}','${otherUserId}')"/>
+      <button onclick="sendMsg('${bookingId}','${otherUserId}')"
+        style="background:linear-gradient(135deg,#E41E20,#cc0000);color:#fff;padding:10px 18px;border-radius:12px;font-weight:700;flex-shrink:0">→</button>
+    </div>`);
+  const el = document.getElementById('chat-msgs');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function chatBubble(m) {
+  const mine = m.from_id === me?.id;
+  return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}">
+    <div style="max-width:78%;background:${mine?'linear-gradient(135deg,#E41E20,#cc0000)':'rgba(255,255,255,.09)'};
+      border-radius:${mine?'14px 14px 4px 14px':'14px 14px 14px 4px'};
+      padding:9px 13px;font-size:.875rem;line-height:1.5">${esc(m.text)}</div>
+  </div>`;
+}
+
+function sendMsg(bookingId, toId) {
+  const input = document.getElementById('chat-input');
+  const text  = input?.value?.trim();
+  if (!text || !socket) return;
+  input.value = '';
+  socket.emit('send_message', { booking_id: bookingId, to_id: toId, text });
+}
 
 // ─── PAYMENT ───────────────────────────────────────────────────────────────
 async function doPay(bookingId) {

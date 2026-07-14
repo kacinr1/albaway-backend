@@ -228,6 +228,33 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     if (socket.userId) userSockets.delete(socket.userId);
   });
+
+  socket.on('send_message', ({ booking_id, to_id, text }) => {
+    if (!socket.userId || !text?.trim()) return;
+    const data    = db();
+    const booking = data.bookings.find(b => b.id === booking_id);
+    if (!booking) return;
+
+    const trip = data.trips.find(t => t.id === booking.trip_id);
+    const isParty = booking.passenger_id === socket.userId || trip?.driver_id === socket.userId;
+    if (!isParty) return;
+
+    const sender = data.users.find(u => u.id === socket.userId);
+    if (!data.messages) data.messages = [];
+    const msg = {
+      id: uid(), booking_id,
+      from_id: socket.userId,
+      from_name: sender?.name || '',
+      to_id, text: text.trim(),
+      created_at: Date.now()
+    };
+    data.messages.push(msg);
+    save(data);
+
+    const sid = userSockets.get(to_id);
+    if (sid) io.to(sid).emit('new_message', msg);
+    socket.emit('new_message', msg);
+  });
 });
 
 function notify(userId, event, payload) {
@@ -560,6 +587,22 @@ app.post('/api/stripe/webhook', (req, res) => {
   }
 
   res.json({ received: true });
+});
+
+// ─── MESSAGES API ─────────────────────────────────────────────────────────
+app.get('/api/messages/:booking_id', auth, (req, res) => {
+  const data    = db();
+  const booking = data.bookings.find(b => b.id === req.params.booking_id);
+  if (!booking) return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
+
+  const trip    = data.trips.find(t => t.id === booking.trip_id);
+  const isParty = booking.passenger_id === req.user.id || trip?.driver_id === req.user.id;
+  if (!isParty) return res.status(403).json({ error: 'Nuk keni akses' });
+
+  const messages = (data.messages || [])
+    .filter(m => m.booking_id === req.params.booking_id)
+    .sort((a, b) => a.created_at - b.created_at);
+  res.json(messages);
 });
 
 // ─── HEALTH ───────────────────────────────────────────────────────────────
