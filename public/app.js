@@ -145,23 +145,48 @@ function route() {
   (pages[path] || renderHome)();
 }
 
+// ─── PUSH NOTIFICATIONS ────────────────────────────────────────────────────
+function requestNotifPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function pushNotif(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+    new Notification(title, { body, icon: '/favicon.ico' });
+  }
+}
+
 // ─── SOCKET ────────────────────────────────────────────────────────────────
 function initSocket() {
   socket = io();
   socket.on('connect', () => { if (me) socket.emit('identify', me.id); });
-  socket.on('new_request', d => showNotif('new_request','🔔 Kërkesë e re!',`${d.passenger.name} → ${d.route}`));
+  socket.on('new_request', d => {
+    showNotif('new_request','🔔 Kërkesë e re!',`${d.passenger.name} → ${d.route}`);
+    pushNotif('AlbaWay — Kërkesë e re 🔔', `${d.passenger.name} kërkon vend → ${d.route}`);
+  });
   socket.on('booking_update', d => {
-    if (d.status==='accepted') showNotif('accepted','✅ Rezervimi u pranua!',`${d.driver_name} · ${d.route||''}`);
-    else if (d.status==='refused') showNotif('refused','❌ Rezervimi u refuzua',`${d.driver_name}`);
-    else showNotif('refused','⚠️ Udëtimi u anulua','Shoferi anuloi udëtimin.');
+    if (d.status==='accepted') {
+      showNotif('accepted','✅ Rezervimi u pranua!',`${d.driver_name} · ${d.route||''}`);
+      pushNotif('AlbaWay — Rezervim i pranuar ✅', `${d.driver_name} · ${d.route||''}`);
+    } else if (d.status==='refused') {
+      showNotif('refused','❌ Rezervimi u refuzua',`${d.driver_name}`);
+      pushNotif('AlbaWay — Rezervim i refuzuar', `${d.driver_name}`);
+    } else {
+      showNotif('refused','⚠️ Udëtimi u anulua','Shoferi anuloi udëtimin.');
+      pushNotif('AlbaWay ⚠️', 'Shoferi anuloi udëtimin.');
+    }
   });
   socket.on('payment_confirmed', d => {
     showNotif('accepted','💳 Pagesa u bë!',
       `${d.passenger_name} · ${d.route}${d.passenger_phone?' · 📞 '+d.passenger_phone:''}`);
+    pushNotif('AlbaWay — Pagesë e konfirmuar 💳', `${d.passenger_name} pagoi · ${d.route}`);
     loadDriverTab();
   });
   socket.on('payment_success', () => {
     showNotif('accepted','✅ Pagesa u konfirmua!','Tani mund të shihni numrin e shoferit.');
+    pushNotif('AlbaWay — Pagesë e suksesshme ✅', 'Tani mund të shihni numrin e shoferit.');
     loadPassengerTab();
   });
   socket.on('new_message', msg => {
@@ -173,6 +198,7 @@ function initSocket() {
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
     } else if (msg.from_id !== me?.id) {
       showNotif('new_request','💬 Mesazh i ri!', `${msg.from_name}: ${msg.text.slice(0,60)}`);
+      pushNotif('AlbaWay — Mesazh i ri 💬', `${msg.from_name}: ${msg.text.slice(0,80)}`);
     }
   });
 }
@@ -184,6 +210,7 @@ async function apiLogin(email, password) {
   localStorage.setItem('bbs_token',token);
   localStorage.setItem('bbs_user',JSON.stringify(me));
   socket?.emit('identify',me.id);
+  requestNotifPermission();
   updateNav(); closeModalNow();
   toast('Mirë se erdhe, '+me.name+'! 🇦🇱','success');
   navigate('home');
@@ -194,6 +221,7 @@ async function apiRegister(name,email,password,phone) {
   localStorage.setItem('bbs_token',token);
   localStorage.setItem('bbs_user',JSON.stringify(me));
   socket?.emit('identify',me.id);
+  requestNotifPermission();
   updateNav(); closeModalNow();
   toast('Mirë se vini, '+me.name+'! 🎉','success');
   navigate('dashboard');
@@ -225,7 +253,7 @@ function updateNav() {
     const ini = document.getElementById('user-initials');
     ini.textContent = initials_(me.name);
     ini.style.background = avatarColor(me.name);
-    document.getElementById('user-name-nav').textContent = me.name.split(' ')[0];
+    document.getElementById('user-name-nav').textContent = me.name.charAt(0).toUpperCase() + '.';
   } else {
     ab.classList.remove('hidden'); um.classList.add('hidden');
   }
@@ -675,11 +703,15 @@ async function loadPassengerTab() {
           <div style="color:rgba(255,255,255,.4);font-size:.82rem;margin-top:4px">📅 ${fmtDate(b.trip?.date)} · ${esc(b.trip?.time||'')} · ${b.trip?.price||0}€ · ${esc(b.trip?.driver?.name||'?')}</div></div>
           <span class="badge ${bc}">${bl.join(' ')}</span>
         </div>
-        ${b.status==='accepted' ? `
+        ${b.status==='accepted' && b.payment_status==='paid' ? `
         <button onclick="event.stopPropagation();openChat('${b.id}','${b.trip?.driver_id||''}','${esc(b.trip?.driver?.name||'Shofer')}')"
-          style="margin-top:10px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:8px;border-radius:10px;font-size:.82rem;font-weight:600">
-          ${t('chat_driver')}
+          style="margin-top:12px;width:100%;background:linear-gradient(135deg,rgba(0,61,130,.5),rgba(0,61,130,.3));border:1px solid rgba(0,122,255,.35);color:#fff;padding:10px;border-radius:12px;font-size:.85rem;font-weight:700;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:7px">
+          💬 ${t('chat_driver')}
         </button>` : ''}
+        ${b.status==='accepted' && b.payment_status!=='paid' ? `
+        <div style="margin-top:10px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.3);padding:9px;border-radius:10px;font-size:.8rem;text-align:center">
+          🔒 Chat disponueshëm pas pagesës
+        </div>` : ''}
         ${b.status==='accepted' && b.payment_status!=='paid' ? `
         <div style="background:rgba(0,61,130,.15);border:1px solid rgba(0,61,130,.35);border-radius:12px;padding:14px 16px;margin-top:12px">
           <div style="font-size:.8rem;color:rgba(255,255,255,.55);margin-bottom:10px">✅ Rezervimi u pranua! Konfirmo pagesën për të shkëmbyer kontaktet.</div>
@@ -729,11 +761,15 @@ async function showReqs(tripId, route) {
           <div style="font-size:.7rem;color:rgba(16,185,129,.7);font-weight:700;letter-spacing:1px;margin-bottom:2px">📞 KONTAKTI I PASAGJERIT</div>
           <div style="font-size:.9rem;color:#34d399;font-weight:700">${esc(r.passenger.phone)}</div>
         </div>` : ''}
-        ${r.status==='accepted' ? `
+        ${r.status==='accepted' && r.payment_status==='paid' ? `
         <button onclick="openChat('${r.id}','${r.passenger?.id||''}','${esc(r.passenger?.name||'Pasagjer')}')"
-          style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:7px;border-radius:9px;font-size:.8rem;font-weight:600">
+          style="margin-top:10px;width:100%;background:linear-gradient(135deg,rgba(0,61,130,.5),rgba(0,61,130,.3));border:1px solid rgba(0,122,255,.35);color:#fff;padding:9px;border-radius:12px;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px">
           💬 Chato me pasagjerin
         </button>` : ''}
+        ${r.status==='accepted' && r.payment_status!=='paid' ? `
+        <div style="margin-top:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.3);padding:8px;border-radius:9px;font-size:.78rem;text-align:center">
+          🔒 Chat disponueshëm pas pagesës së pasagjerit
+        </div>` : ''}
       </div>`).join('')}`);
 }
 async function respBook(bid, status, tripId, route) {

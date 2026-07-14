@@ -268,7 +268,7 @@ const TRANSLATIONS = {
 };
 
 const LANG_FLAGS = { sq:'🇦🇱', fr:'🇫🇷', de:'🇩🇪', en:'🇬🇧' };
-const LANG_NAMES = { sq:'Shqip', fr:'Français', de:'Deutsch', en:'English' };
+const LANG_NAMES = { sq:'SQ', fr:'FR', de:'DE', en:'EN' };
 
 let _lang = localStorage.getItem('aw_lang') || 'sq';
 
