@@ -104,10 +104,75 @@ function countUp(el, target) {
   });
 }
 
+// ─── NAV MAGIC ─────────────────────────────────────────────────────────────
+function initNavMagic() {
+  const header   = document.getElementById('header');
+  const navLinks = document.querySelector('.nav-links');
+  if (!navLinks || !header) return;
+
+  // — Pill flottante LERP ——————————————————————————————
+  const pill = document.createElement('div');
+  pill.className = 'nav-pill';
+  navLinks.appendChild(pill);
+
+  let px=0,py=0,pw=0,ph=0, tx=0,ty=0,tw=0,th=0, ready=false;
+  (function lerpLoop(){
+    px+=(tx-px)*.13; py+=(ty-py)*.13;
+    pw+=(tw-pw)*.13; ph+=(th-ph)*.13;
+    pill.style.transform=`translate(${px}px,${py}px)`;
+    pill.style.width =pw+'px';
+    pill.style.height=ph+'px';
+    requestAnimationFrame(lerpLoop);
+  })();
+
+  [...navLinks.querySelectorAll('a')].forEach(a => {
+    a.addEventListener('mouseenter', () => {
+      const nr=navLinks.getBoundingClientRect(), lr=a.getBoundingClientRect();
+      tx=lr.left-nr.left; ty=lr.top-nr.top; tw=lr.width; th=lr.height;
+      if(!ready){ px=tx;py=ty;pw=tw;ph=th; ready=true; }
+      pill.style.opacity='1';
+    });
+    // — Magnétique ——————————————————————————————————————
+    a.addEventListener('mousemove', e => {
+      const r=a.getBoundingClientRect();
+      const dx=(e.clientX-(r.left+r.width/2)) *.28;
+      const dy=(e.clientY-(r.top +r.height/2))*.28;
+      a.style.transform=`translate(${dx}px,${dy}px)`;
+    });
+    a.addEventListener('mouseleave',()=>{ a.style.transform=''; });
+  });
+  navLinks.addEventListener('mouseleave',()=>{ pill.style.opacity='0'; });
+
+  // — Spotlight rouge ——————————————————————————————————
+  header.addEventListener('mousemove', e => {
+    const r=header.getBoundingClientRect();
+    header.style.setProperty('--sx',(e.clientX-r.left)+'px');
+    header.style.setProperty('--sop','1');
+  });
+  header.addEventListener('mouseleave',()=>{ header.style.setProperty('--sop','0'); });
+
+  // — Scroll-aware ———————————————————————————————————————
+  let lastY=0;
+  window.addEventListener('scroll',()=>{
+    const y=window.scrollY;
+    header.classList.toggle('scrolled', y>50);
+    if(y>lastY+6 && y>130) header.classList.add('nav-hidden');
+    else if(y<lastY-6)     header.classList.remove('nav-hidden');
+    lastY=y;
+  },{passive:true});
+
+  // — Entrée GSAP au chargement ——————————————————————————
+  if(window.gsap){
+    gsap.from('#header',{ y:-90,opacity:0,duration:.9,ease:'back.out(1.3)',delay:.05 });
+    gsap.from('.nav-links a',{ y:-18,opacity:0,stagger:.055,duration:.5,ease:'power3.out',delay:.35 });
+  }
+}
+
 // ─── INIT ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   initCursor();
   initGSAP();
+  initNavMagic();
   initSocket();
   updateNav();
 
