@@ -390,7 +390,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
       const attempts = (failedAttempts.get(key) || 0) + 1;
       failedAttempts.set(key, attempts);
 
-      if (attempts >= 3 && user) {
+      if (attempts >= 6 && user) {
         const resetToken   = uid();
         const resetExpires = Date.now() + 60 * 60 * 1000;
         await q('UPDATE users SET locked=TRUE, reset_token=$1, reset_token_expires=$2 WHERE id=$3',
@@ -400,7 +400,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
         return res.status(403).json({ error: 'Llogaria u bllokua. Kontrollo emailin tënd për udhëzimet e rimëkëmbjes.' });
       }
 
-      const left = 3 - attempts;
+      const left = 6 - attempts;
       return res.status(400).json({ error: `Email ose fjalëkalim i gabuar. ${left} tentativ${left === 1 ? 'ë' : 'a'} të mbetura.` });
     }
 
@@ -411,6 +411,22 @@ app.post('/api/login', authLimiter, async (req, res) => {
     const token = createToken(user.id);
     const { password: _, reset_token: __, reset_token_expires: ___, ...safe } = user;
     res.json({ token, user: safe });
+  } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
+});
+
+app.post('/api/auth/reset-request', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email requis' });
+    const { rows: [user] } = await q('SELECT * FROM users WHERE LOWER(email)=$1', [email.toLowerCase().trim()]);
+    if (user) {
+      const resetToken   = uid();
+      const resetExpires = Date.now() + 60 * 60 * 1000;
+      await q('UPDATE users SET locked=FALSE, reset_token=$1, reset_token_expires=$2 WHERE id=$3',
+        [resetToken, resetExpires, user.id]);
+      sendResetEmail(user.email, user.name, resetToken).catch(e => console.error('email error:', e.message));
+    }
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
 });
 
@@ -719,6 +735,18 @@ app.post('/api/stripe/webhook', async (req, res) => {
     }
   }
   res.json({ received: true });
+});
+
+// ─── ADMIN (temporaire) ───────────────────────────────────────────────────
+app.post('/api/admin/unlock', async (req, res) => {
+  const { secret, email } = req.body;
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
+    return res.status(403).json({ error: 'Forbidden' });
+  const { rows } = await q(
+    'UPDATE users SET locked=FALSE, reset_token=NULL, reset_token_expires=NULL WHERE LOWER(email)=$1 RETURNING id',
+    [email.toLowerCase()]
+  );
+  res.json({ ok: true, updated: rows.length });
 });
 
 // ─── MESSAGES API ─────────────────────────────────────────────────────────

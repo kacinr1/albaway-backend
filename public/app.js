@@ -790,6 +790,7 @@ function openModal(type) {
       <div class="form-group"><label class="form-label">Fjalëkalimi</label><input class="form-input" id="li-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
       <div id="login-info" style="display:none;margin:8px 0 4px;padding:10px 14px;background:rgba(228,30,32,.1);border:1px solid rgba(228,30,32,.3);border-radius:10px;font-size:.82rem;color:#f87171"></div>
       <button class="modal-submit" onclick="doLogin()">Hyr →</button>
+      <p class="modal-switch" style="margin-top:8px"><a onclick="openForgotPassword()" style="color:rgba(255,255,255,.4);font-size:.82rem">🔑 Fjalëkalim i harruar?</a></p>
       <p class="modal-switch">Nuk ke llogari? <a onclick="openModal('register')">Regjistrohu</a></p>`);
   } else {
     openModalHTML(`
@@ -1016,6 +1017,31 @@ function sendMsg(bookingId, toId) {
   if (!text || !socket) return;
   input.value = '';
   socket.emit('send_message', { booking_id: bookingId, to_id: toId, text });
+}
+
+// ─── FORGOT PASSWORD ───────────────────────────────────────────────────────
+function openForgotPassword() {
+  openModalHTML(`
+    <button class="modal-close" onclick="closeModalNow()">✕</button>
+    <div class="modal-title">🔑 Fjalëkalim i harruar</div>
+    <p style="color:rgba(255,255,255,.45);font-size:.875rem;margin:0 0 20px">Shkruaj emailin tënd — do të të dërgojmë një link për të rivendosur fjalëkalimin.</p>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="fp-email" type="email" placeholder="email@example.com" autofocus
+        onkeydown="if(event.key==='Enter')doForgotPassword()"/>
+    </div>
+    <button class="modal-submit" onclick="doForgotPassword()">Dërgo linkun →</button>
+    <p class="modal-switch"><a onclick="openModal('login')">← Kthehu te hyrja</a></p>`);
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('fp-email')?.value?.trim();
+  if (!email) { toast('Shkruaj emailin tënd','error'); return; }
+  try {
+    await apiFetch('/auth/reset-request','POST',{ email });
+    closeModalNow();
+    toast('✅ Nëse ky email ekziston, një link u dërgua. Kontrollo edhe spam.','success');
+  } catch(e) { toast(e.message,'error'); }
 }
 
 // ─── RESET PASSWORD ────────────────────────────────────────────────────────
