@@ -744,6 +744,40 @@ app.post('/api/stripe/webhook', async (req, res) => {
 });
 
 // ─── ADMIN (temporaire) ───────────────────────────────────────────────────
+app.post('/api/admin/test-smtp', async (req, res) => {
+  const { secret } = req.body;
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
+    return res.status(403).json({ error: 'Forbidden' });
+
+  const result = {
+    SMTP_USER:  process.env.SMTP_USER  || '❌ NON DÉFINI',
+    SMTP_PASS:  process.env.SMTP_PASS  ? '✅ défini (' + process.env.SMTP_PASS.length + ' chars)' : '❌ NON DÉFINI',
+    SMTP_HOST:  process.env.SMTP_HOST  || 'smtp.gmail.com (défaut)',
+    SMTP_PORT:  process.env.SMTP_PORT  || '587 (défaut)',
+    verify:     null,
+    send:       null,
+    error:      null
+  };
+
+  try {
+    const t = mailTransport();
+    await t.verify();
+    result.verify = '✅ Connexion SMTP OK';
+    await t.sendMail({
+      from:    `"AlbaWay Test" <${process.env.SMTP_USER}>`,
+      to:      process.env.SMTP_USER,
+      subject: 'AlbaWay — Test SMTP',
+      text:    'Si tu reçois ce mail, le SMTP fonctionne !'
+    });
+    result.send = '✅ Email test envoyé à ' + process.env.SMTP_USER;
+  } catch(e) {
+    result.error = e.message;
+    result.code  = e.code;
+  }
+
+  res.json(result);
+});
+
 app.post('/api/admin/unlock', async (req, res) => {
   const { secret, email } = req.body;
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
