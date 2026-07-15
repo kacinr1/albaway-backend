@@ -791,6 +791,11 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
   .hamburger{display:block}
   .tlc{grid-template-columns:1fr}
   .hero-stats{gap:24px}
+  /* Nav flottante — marges réduites sur mobile */
+  #header{width:calc(100% - 20px);top:8px}
+  #header.scrolled{top:0;width:100%}
+  #header.scrolled ~ #mobile-nav{top:52px;left:0;right:0;border-radius:0 0 16px 16px}
+  .nav-inner{padding:0 16px;gap:10px}
 }
 /* ── LANGUAGE SWITCHER ─────────────────────────────────── */
 .lang-sw{position:relative}

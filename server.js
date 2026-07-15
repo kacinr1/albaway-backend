@@ -69,22 +69,28 @@ const authLimiter = rateLimit({
 const failedAttempts = new Map(); // email → count
 
 function mailTransport() {
+  const port   = parseInt(process.env.SMTP_PORT) || 587;
+  const secure = port === 465;
   return nodemailer.createTransport({
     host:   process.env.SMTP_HOST || 'smtp.gmail.com',
-    port:   parseInt(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    port,
+    secure,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    tls:  { rejectUnauthorized: false }
   });
 }
 
 async function sendResetEmail(email, name, token) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.error('SMTP not configured — cannot send reset email to', email);
+    console.error('[SMTP] ❌ Variables manquantes — SMTP_USER:', !!process.env.SMTP_USER, 'SMTP_PASS:', !!process.env.SMTP_PASS);
     return;
   }
+  console.log('[SMTP] Envoi à', email, '— user:', process.env.SMTP_USER, 'host:', process.env.SMTP_HOST || 'smtp.gmail.com');
   const base = process.env.FRONTEND_URL || 'https://albaway.ch';
   const link = `${base}/reset?token=${token}`;
-  await mailTransport().sendMail({
+  const transport = mailTransport();
+  await transport.verify().catch(e => console.error('[SMTP] verify() failed:', e.message, e.code));
+  await transport.sendMail({
     from:    `"AlbaWay 🇦🇱" <${process.env.SMTP_USER}>`,
     to:      email,
     subject: 'AlbaWay — Rimëkëmbja e llogarisë',
