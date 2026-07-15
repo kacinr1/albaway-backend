@@ -1,0 +1,39 @@
+<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8201E"/>
+      <stop offset="1" stop-color="#8C0000"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.14"/>
+      <stop offset="0.5" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fond rouge dégradé -->
+  <rect width="44" height="44" rx="12" fill="url(#bg)"/>
+  <!-- Reflet haut -->
+  <rect width="44" height="44" rx="12" fill="url(#shine)"/>
+  <!-- Bordure intérieure subtile -->
+  <rect x="0.5" y="0.5" width="43" height="43" rx="11.5" stroke="white" stroke-opacity="0.12"/>
+
+  <!-- Point de départ: cercle creux + point central (Europe) -->
+  <circle cx="12" cy="32" r="3.8" stroke="white" stroke-width="2.2" fill="none"/>
+  <circle cx="12" cy="32" r="1.3" fill="white"/>
+
+  <!-- Ligne de trajet pointillée courbée -->
+  <path d="M12 28.2 Q20 13 31 21.5"
+        stroke="white" stroke-width="2"
+        stroke-linecap="round"
+        stroke-dasharray="3.2 2.6"
+        fill="none" opacity="0.7"/>
+
+  <!-- Épingle d'arrivée: map pin classique (Balkans) -->
+  <path d="M31 7.5
+           C27.5 7.5 24.5 10.5 24.5 14
+           C24.5 18.5 31 25 31 25
+           C31 25 37.5 18.5 37.5 14
+           C37.5 10.5 34.5 7.5 31 7.5Z"
+        fill="white"/>
+  <circle cx="31" cy="14" r="2.8" fill="#C0000A"/>
+</svg>
