@@ -14,7 +14,7 @@ const dns        = require('dns').promises;
 const bcrypt     = require('bcryptjs');
 const rateLimit  = require('express-rate-limit');
 const helmet     = require('helmet');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -68,30 +68,16 @@ const authLimiter = rateLimit({
 
 const failedAttempts = new Map(); // email → count
 
-function mailTransport() {
-  const port   = parseInt(process.env.SMTP_PORT) || 587;
-  const secure = port === 465;
-  return nodemailer.createTransport({
-    host:   process.env.SMTP_HOST || 'smtp.gmail.com',
-    port,
-    secure,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    tls:  { rejectUnauthorized: false }
-  });
-}
-
 async function sendResetEmail(email, name, token) {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.error('[SMTP] ❌ Variables manquantes — SMTP_USER:', !!process.env.SMTP_USER, 'SMTP_PASS:', !!process.env.SMTP_PASS);
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[EMAIL] ❌ RESEND_API_KEY non configuré dans Render');
     return;
   }
-  console.log('[SMTP] Envoi à', email, '— user:', process.env.SMTP_USER, 'host:', process.env.SMTP_HOST || 'smtp.gmail.com');
   const base = process.env.FRONTEND_URL || 'https://albaway.ch';
   const link = `${base}/reset?token=${token}`;
-  const transport = mailTransport();
-  await transport.verify().catch(e => console.error('[SMTP] verify() failed:', e.message, e.code));
-  await transport.sendMail({
-    from:    `"AlbaWay 🇦🇱" <${process.env.SMTP_USER}>`,
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const { data, error } = await resend.emails.send({
+    from:    'AlbaWay <noreply@albaway.ch>',
     to:      email,
     subject: 'AlbaWay — Rimëkëmbja e llogarisë',
     html: `
@@ -102,7 +88,7 @@ async function sendResetEmail(email, name, token) {
         </div>
         <p style="margin:0 0 12px">Mirëdita <strong>${name}</strong>,</p>
         <p style="color:rgba(255,255,255,.7);margin:0 0 24px">
-          Llogaria juaj u bllokua pas <strong>3 tentativave të dështuara</strong> të hyrjes.
+          Llogaria juaj u bllokua pas <strong>6 tentativave të dështuara</strong> të hyrjes.
           Klikoni butonin më poshtë për të rivendosur fjalëkalimin:
         </p>
         <div style="text-align:center;margin:32px 0">
@@ -117,6 +103,8 @@ async function sendResetEmail(email, name, token) {
         <p style="color:rgba(255,255,255,.2);font-size:.75rem;text-align:center">AlbaWay · Bashkudhëtim shqiptar 🇦🇱</p>
       </div>`
   });
+  if (error) console.error('[EMAIL] ❌ Resend error:', error);
+  else        console.log('[EMAIL] ✅ Envoyé à', email, '— id:', data.id);
 }
 
 // ─── INIT DB ──────────────────────────────────────────────────────────────
@@ -744,38 +732,21 @@ app.post('/api/stripe/webhook', async (req, res) => {
 });
 
 // ─── ADMIN (temporaire) ───────────────────────────────────────────────────
-app.post('/api/admin/test-smtp', async (req, res) => {
-  const { secret } = req.body;
+app.post('/api/admin/test-email', async (req, res) => {
+  const { secret, to } = req.body;
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
     return res.status(403).json({ error: 'Forbidden' });
-
-  const result = {
-    SMTP_USER:  process.env.SMTP_USER  || '❌ NON DÉFINI',
-    SMTP_PASS:  process.env.SMTP_PASS  ? '✅ défini (' + process.env.SMTP_PASS.length + ' chars)' : '❌ NON DÉFINI',
-    SMTP_HOST:  process.env.SMTP_HOST  || 'smtp.gmail.com (défaut)',
-    SMTP_PORT:  process.env.SMTP_PORT  || '587 (défaut)',
-    verify:     null,
-    send:       null,
-    error:      null
-  };
-
-  try {
-    const t = mailTransport();
-    await t.verify();
-    result.verify = '✅ Connexion SMTP OK';
-    await t.sendMail({
-      from:    `"AlbaWay Test" <${process.env.SMTP_USER}>`,
-      to:      process.env.SMTP_USER,
-      subject: 'AlbaWay — Test SMTP',
-      text:    'Si tu reçois ce mail, le SMTP fonctionne !'
-    });
-    result.send = '✅ Email test envoyé à ' + process.env.SMTP_USER;
-  } catch(e) {
-    result.error = e.message;
-    result.code  = e.code;
-  }
-
-  res.json(result);
+  if (!process.env.RESEND_API_KEY)
+    return res.json({ error: '❌ RESEND_API_KEY non défini dans Render' });
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const { data, error } = await resend.emails.send({
+    from:    'AlbaWay <noreply@albaway.ch>',
+    to:      to || 'kacinr1@gmail.com',
+    subject: 'AlbaWay — Test email ✅',
+    html:    '<h2>🇦🇱 AlbaWay</h2><p>Si tu reçois ce mail, Resend fonctionne !</p>'
+  });
+  if (error) return res.json({ error: error.message, details: error });
+  res.json({ ok: true, id: data.id, msg: 'Email envoyé !' });
 });
 
 app.post('/api/admin/unlock', async (req, res) => {
