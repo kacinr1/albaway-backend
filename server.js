@@ -767,6 +767,24 @@ app.post('/api/admin/unlock', async (req, res) => {
   res.json({ ok: true, updated: rows.length });
 });
 
+app.post('/api/admin/clean-demo', async (req, res) => {
+  const { secret } = req.body;
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
+    return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const { rows: demoUsers } = await q(
+      "SELECT id FROM users WHERE email LIKE '%@demo.com'", []
+    );
+    if (!demoUsers.length) return res.json({ ok: true, cancelled: 0, msg: 'Nuk ka trajete demo' });
+    const ids = demoUsers.map(u => u.id);
+    const { rowCount } = await q(
+      `UPDATE trips SET status='cancelled', seats_available=0 WHERE driver_id = ANY($1) AND status='active'`,
+      [ids]
+    );
+    res.json({ ok: true, cancelled: rowCount, demo_users: ids.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── MESSAGES API ─────────────────────────────────────────────────────────
 app.get('/api/messages/:booking_id', auth, async (req, res) => {
   try {

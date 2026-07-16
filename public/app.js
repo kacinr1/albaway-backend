@@ -344,10 +344,9 @@ async function renderHome() {
         <button class="search-go" onclick="doSearch()">${t('hero_search')}</button>
       </div>
       <div class="hero-stats">
-        <div class="hs"><div class="hs-num" data-to="120">0+</div><div class="hs-lbl">${t('stat_travelers')}</div></div>
-        <div class="hs"><div class="hs-num" data-to="22">0+</div><div class="hs-lbl">${t('stat_drivers')}</div></div>
-        <div class="hs"><div class="hs-num" data-to="18">0+</div><div class="hs-lbl">${t('stat_cities')}</div></div>
-        <div class="hs"><div class="hs-num" data-to="96">0%</div><div class="hs-lbl">${t('stat_satisfaction')}</div></div>
+        <div class="hs"><div class="hs-num">18+</div><div class="hs-lbl">${t('stat_cities')}</div></div>
+        <div class="hs"><div class="hs-num">CH·DE·AT·UK</div><div class="hs-lbl">Shtete</div></div>
+        <div class="hs"><div class="hs-num">100%</div><div class="hs-lbl">Falas</div></div>
       </div>
       <div class="scroll-hint"><span>${t('scroll')}</span><div class="scroll-bar"></div></div>
     </section>
@@ -384,7 +383,7 @@ async function renderHome() {
         </div>
         <div class="bc bc-wide reveal" style="background:rgba(228,30,32,.08);border-color:rgba(228,30,32,.18);display:flex;align-items:center;gap:24px">
           <span style="font-size:3rem">⭐</span>
-          <div><div class="bc-title" style="font-size:1.1rem">4.9/5 vlerësim mesatar</div><div class="bc-desc">Mbi 120 udhëtarë na besuan. Siguria, prioriteti #1.</div></div>
+          <div><div class="bc-title" style="font-size:1.1rem">${t('how_rating')}</div><div class="bc-desc">${t('how_rating_desc')}</div></div>
         </div>
       </div>
     </div>
@@ -850,10 +849,6 @@ function openModal(type) {
     openModalHTML(`
       <button class="modal-close" onclick="closeModalNow()">✕</button>
       <div class="modal-title">Mirëseerdhe 🇦🇱</div>
-      <div class="demo-box"><p>Kontet demo</p>
-        ${[['Arben','arben@demo.com'],['Blerina','blerina@demo.com'],['Ilir','ilir@demo.com']].map(([n,e])=>
-          `<button class="demo-btn" onclick="document.getElementById('li-e').value='${e}';document.getElementById('li-p').value='demo123'">→ ${n} (${e})</button>`).join('')}
-      </div>
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="li-e" type="email" placeholder="email@example.com" autofocus/></div>
       <div class="form-group"><label class="form-label">Fjalëkalimi</label><input class="form-input" id="li-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
       <div id="login-info" style="display:none;margin:8px 0 4px;padding:10px 14px;background:rgba(228,30,32,.1);border:1px solid rgba(228,30,32,.3);border-radius:10px;font-size:.82rem;color:#f87171"></div>
