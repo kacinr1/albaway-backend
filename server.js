@@ -500,14 +500,21 @@ app.get('/api/trips/:id', async (req, res) => {
 
     const { rows: [drv] } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
     const { rows: accepted } = await q("SELECT * FROM bookings WHERE trip_id=$1 AND status='accepted'", [trip.id]);
-    const passengers = (await Promise.all(
-      accepted.map(b => q('SELECT id,name,rating FROM users WHERE id=$1', [b.passenger_id]).then(r => r.rows[0]))
-    )).filter(Boolean);
+
+    const currentUser = await getUser(req);
+    const isDriver = currentUser && currentUser.id === trip.driver_id;
+
+    const passengers = isDriver
+      ? (await Promise.all(
+          accepted.map(b => q('SELECT id,name,rating FROM users WHERE id=$1', [b.passenger_id]).then(r => r.rows[0]))
+        )).filter(Boolean)
+      : [];
 
     res.json({
       ...trip,
       driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count } : null,
-      passengers
+      passengers,
+      passengers_count: accepted.length
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

@@ -550,15 +550,18 @@ async function renderTripDetail(id) {
                   <span>${t.options?.[o.k]?'✅':'❌'}</span>
                 </div>`).join('')}</div>
             </div>
-            ${t.passengers?.length?`
+            ${(t.passengers_count > 0 || t.passengers?.length > 0)?`
             <div class="glass-card reveal">
-              <h3>👥 Pasagjerë (${t.passengers.length})</h3>
-              ${t.passengers.map(p=>`
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-                <div class="tc-av" style="background:${avatarColor(p.name)};width:36px;height:36px;font-size:.85rem">${initials_(p.name)}</div>
-                <span style="font-weight:600">${esc(p.name)}</span>
-                <span style="color:rgba(255,255,255,.4);font-size:.8rem">⭐${p.rating?.toFixed(1)}</span>
-              </div>`).join('')}
+              <h3>👥 Pasagjerë</h3>
+              ${t.passengers?.length?
+                t.passengers.map(p=>`
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                  <div class="tc-av" style="background:${avatarColor(p.name)};width:36px;height:36px;font-size:.85rem">${initials_(p.name)}</div>
+                  <span style="font-weight:600">${esc(p.name)}</span>
+                  <span style="color:rgba(255,255,255,.4);font-size:.8rem">⭐${p.rating?.toFixed(1)}</span>
+                </div>`).join(''):
+                `<div style="color:rgba(255,255,255,.45);font-size:.85rem">🔒 ${t.passengers_count} vend(e) të rezervuar(a)</div>`
+              }
             </div>`:''}
           </div>
           <div class="detail-col">
