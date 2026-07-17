@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 require('dotenv').config();
 
@@ -38,12 +38,42 @@ async function createPool() {
   });
 }
 
+const ALLOWED_ORIGINS = [
+  'https://albaway.ch',
+  'https://www.albaway.ch',
+  ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3001'] : [])
+];
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('CORS: origin not allowed'));
+  },
+  credentials: true,
+};
+
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const io     = new Server(server, { cors: { origin: ALLOWED_ORIGINS } });
 
-app.use(cors());
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+app.use(cors(corsOptions));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://js.stripe.com', 'https://fonts.googleapis.com'],
+      styleSrc:    ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc:     ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc:      ["'self'", 'data:', 'https://images.unsplash.com'],
+      connectSrc:  ["'self'", 'https://js.stripe.com'],
+      frameSrc:    ["'none'"],
+      objectSrc:   ["'none'"],
+    },
+  },
+  hsts:                        { maxAge: 31536000, includeSubDomains: true },
+  frameguard:                  { action: 'deny' },
+  crossOriginEmbedderPolicy:   false,
+}));
 app.use(express.json({
   verify: (req, res, buf) => { if (req.path === '/api/stripe/webhook') req.rawBody = buf; }
 }));
@@ -60,7 +90,7 @@ const q = (text, params) => pool.query(text, params);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Shumë tentativa. Provoni sërish pas 15 minutash.' }
@@ -309,7 +339,7 @@ app.post('/api/ratings', auth, async (req, res) => {
     if (booking.rated)                        return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
 
     const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [booking.trip_id]);
-    if (!trip) return res.status(404).json({ error: 'Udëtimi nuk u gjet' });
+    if (!trip) return res.status(404).json({ error: 'Udhëtimi nuk u gjet' });
 
     const { rows: [driver] } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
     if (driver) {
@@ -496,7 +526,7 @@ app.get('/api/trips/mine', auth, async (req, res) => {
 app.get('/api/trips/:id', async (req, res) => {
   try {
     const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [req.params.id]);
-    if (!trip) return res.status(404).json({ error: 'Udëtimi nuk u gjet' });
+    if (!trip) return res.status(404).json({ error: 'Udhëtimi nuk u gjet' });
 
     const { rows: [drv] } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
     const { rows: accepted } = await q("SELECT * FROM bookings WHERE trip_id=$1 AND status='accepted'", [trip.id]);
@@ -604,9 +634,9 @@ app.post('/api/bookings', auth, async (req, res) => {
     const { trip_id, seats, message } = req.body;
     const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [trip_id]);
     if (!trip || trip.status !== 'active')
-      return res.status(400).json({ error: 'Udëtimi nuk është i disponueshëm' });
+      return res.status(400).json({ error: 'Udhëtimi nuk është i disponueshëm' });
     if (trip.driver_id === req.user.id)
-      return res.status(400).json({ error: 'Nuk mund të rezervosh udëtimin tënd' });
+      return res.status(400).json({ error: 'Nuk mund të rezervosh udhëtimin tënd' });
 
     const want = parseInt(seats) || 1;
     if (trip.seats_available < want)

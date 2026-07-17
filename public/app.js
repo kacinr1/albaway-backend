@@ -1,6 +1,6 @@
 ﻿'use strict';
 /* ═══════════════════════════════════════════════════════
-   Albaway — SPA 2026
+   AlbaWay — SPA 2026
 ═══════════════════════════════════════════════════════ */
 
 const API = '/api';
@@ -240,8 +240,8 @@ function initSocket() {
       showNotif('refused','❌ Rezervimi u refuzua',`${d.driver_name}`);
       pushNotif('AlbaWay — Rezervim i refuzuar', `${d.driver_name}`);
     } else {
-      showNotif('refused','⚠️ Udëtimi u anulua','Shoferi anuloi udëtimin.');
-      pushNotif('AlbaWay ⚠️', 'Shoferi anuloi udëtimin.');
+      showNotif('refused','⚠️ Udhëtimi u anulua','Shoferi anuloi udhëtimin.');
+      pushNotif('AlbaWay ⚠️', 'Shoferi anuloi udhëtimin.');
     }
   });
   socket.on('payment_confirmed', d => {
@@ -352,7 +352,7 @@ async function renderHome() {
     </section>
 
     <div class="section-wrap" id="trips-home">
-      <div class="loading">Duke ngarkuar udëtimet...</div>
+      <div class="loading">Duke ngarkuar udhëtimet...</div>
     </div>
 
     <div class="section-wrap">
@@ -363,7 +363,7 @@ async function renderHome() {
       <div class="bento">
         <div class="bc bc-wide bc-accent reveal">
           <div class="bc-num">01</div><div class="bc-icon">🔍</div>
-          <div class="bc-title">Kërko udëtimin</div>
+          <div class="bc-title">Kërko udhëtimin</div>
           <div class="bc-desc">Fut qytetin e nisjes dhe destinacionin. Ne gjejmë shoferin e duhur për ty.</div>
         </div>
         <div class="bc reveal">
@@ -413,8 +413,8 @@ async function renderHome() {
         <div class="section-h">Bashkohu me komunitetin<br>shqiptar sot</div>
         <p style="color:rgba(255,255,255,.4);margin:12px 0 32px">Falas. I sigurt. I shpejtë.</p>
         <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-          <button onclick="${me?"navigate('publish')":'openModal("register")'}" class="btn-publish" style="width:auto;padding:14px 32px;margin:0">🚗 Publiko udëtimin</button>
-          <button onclick="navigate('search')" class="btn-see-all" style="padding:14px 32px">🔍 Kërko udëtim</button>
+          <button onclick="${me?"navigate('publish')":'openModal("register")'}" class="btn-publish" style="width:auto;padding:14px 32px;margin:0">🚗 Publiko udhëtimin</button>
+          <button onclick="navigate('search')" class="btn-see-all" style="padding:14px 32px">🔍 Kërko udhëtim</button>
         </div>
       </div>
     </div>
@@ -437,7 +437,7 @@ async function renderHome() {
       </div>
       ${trips.length
         ? `<div class="trips-grid">${trips.slice(0,6).map(tripCard).join('')}</div>`
-        : `<div class="empty-state"><div class="empty-icon">🚗</div><h3>Nuk ka udëtime</h3></div>`}`;
+        : `<div class="empty-state"><div class="empty-icon">🚗</div><h3>Nuk ka udhëtime</h3></div>`}`;
     animateReveal();
     initGSAP();
   } catch {
@@ -472,8 +472,8 @@ async function renderSearch(params={}) {
     document.getElementById('results').innerHTML = `
       <div class="section-header-row" style="margin-bottom:24px">
         <div>
-          <div class="section-h">${from&&to?esc(from)+' → '+esc(to):'Të gjitha udëtimet'}</div>
-          <p style="color:rgba(255,255,255,.4);margin-top:4px;font-size:.875rem">${trips.length} udëtim${trips.length!==1?'e':''} i gjetur</p>
+          <div class="section-h">${from&&to?esc(from)+' → '+esc(to):'Të gjitha udhëtimet'}</div>
+          <p style="color:rgba(255,255,255,.4);margin-top:4px;font-size:.875rem">${trips.length} udhëtim${trips.length!==1?'e':''} i gjetur</p>
         </div>
       </div>
       ${trips.length
@@ -496,8 +496,8 @@ async function renderSearch(params={}) {
               <div><div class="tlc-price">${t.price}€</div><div class="tlc-psub">/ person</div></div>
               <button class="tlc-btn">Rezervo →</button>
             </div>`).join('')}</div>`
-        : `<div class="empty-state"><div class="empty-icon">😕</div><h3>Nuk ka udëtime</h3><p>Provo datë tjetër ose destinacion tjetër.</p>
-           <button onclick="navigate('publish')" class="btn-publish" style="width:auto;padding:14px 28px;margin-top:24px">+ Publiko udëtimin tënd</button></div>`}`;
+        : `<div class="empty-state"><div class="empty-icon">😕</div><h3>Nuk ka udhëtime</h3><p>Provo datë tjetër ose destinacion tjetër.</p>
+           <button onclick="navigate('publish')" class="btn-publish" style="width:auto;padding:14px 28px;margin-top:24px">+ Publiko udhëtimin tënd</button></div>`}`;
     animateReveal();
   } catch(e) {
     document.getElementById('results').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>${esc(e.message)}</h3></div>`;
@@ -569,7 +569,7 @@ async function renderTripDetail(id) {
               <div class="drv-name">${esc(drv?.name||'Shofer')}</div>
               <div class="drv-rate">⭐ ${drv?.rating?.toFixed(1)||''}</div>
               <div class="drv-stats">
-                <div><div class="drv-stat-v">${drv?.trips_count||0}</div><div class="drv-stat-l">Udëtime</div></div>
+                <div><div class="drv-stat-v">${drv?.trips_count||0}</div><div class="drv-stat-l">Udhëtime</div></div>
                 <div><div class="drv-stat-v">${t.seats}</div><div class="drv-stat-l">Vende</div></div>
                 <div><div class="drv-stat-v">${t.seats_available}</div><div class="drv-stat-l">Lirë</div></div>
               </div>
@@ -592,8 +592,8 @@ async function renderTripDetail(id) {
 }
 
 function bookArea(t, isOwn) {
-  if (t.status !== 'active') return `<div class="book-status err">🚫 Udëtimi u anulua</div>`;
-  if (isOwn) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Ky është udëtimi juaj.</div>
+  if (t.status !== 'active') return `<div class="book-status err">🚫 Udhëtimi u anulua</div>`;
+  if (isOwn) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Ky është udhëtimi juaj.</div>
     <button onclick="navigate('dashboard')" class="btn-book" style="background:rgba(0,86,179,.5);box-shadow:none">Menaxho →</button>`;
   if (t.seats_available===0) return `<div class="book-status err">😕 Plotë — nuk ka vende</div>`;
   if (!me) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Hyni për të rezervuar.</div>
@@ -621,7 +621,7 @@ function renderPublish() {
   document.getElementById('app').innerHTML = `
   <div class="page">
     <div class="publish-wrap">
-      <div class="pub-title">🚗 Publiko udëtimin</div>
+      <div class="pub-title">🚗 Publiko udhëtimin</div>
       <div class="pub-sub">Plotëso të dhënat dhe gjej pasagjerë!</div>
       <div class="glass-card reveal" style="margin-bottom:16px">
         <h3>📍 Itinerari *</h3>
@@ -667,7 +667,7 @@ function renderPublish() {
           <textarea class="form-textarea" id="p-notes" placeholder="Ndalojmë në Salzburg, Ferry Ancona-Durrës..."></textarea>
         </div>
       </div>
-      <button class="btn-publish" onclick="doPublish()">🇦🇱 Publiko udëtimin</button>
+      <button class="btn-publish" onclick="doPublish()">🇦🇱 Publiko udhëtimin</button>
     </div>
   </div>`;
   animateReveal();
@@ -693,7 +693,7 @@ async function doPublish() {
       vehicle:{type:_curVT,brand:v('p-brand'),model:v('p-model'),color:v('p-color')},
       options,notes:v('p-notes')
     });
-    toast('✅ Udëtimi u publikua!','success');
+    toast('✅ Udhëtimi u publikua!','success');
     navigate('trip/'+t.id);
   } catch(e) { toast(e.message,'error'); }
 }
@@ -709,7 +709,7 @@ async function renderDashboard() {
         <div style="flex:1">
           <div class="dash-name">${esc(me.name)}</div>
           <div class="dash-sub">📧 ${esc(me.email)}${me.phone?' · 📞 '+esc(me.phone):''}</div>
-          <div class="dash-sub" style="margin-top:4px">⭐ ${me.rating?.toFixed(1)} · ${me.trips_count} udëtime si shofer</div>
+          <div class="dash-sub" style="margin-top:4px">⭐ ${me.rating?.toFixed(1)} · ${me.trips_count} udhëtime si shofer</div>
         </div>
         <button onclick="logout()" class="btn-cancel-t">Dil</button>
       </div>
@@ -838,8 +838,8 @@ async function respBook(bid, status, tripId, route) {
   } catch(e) { toast(e.message,'error'); }
 }
 async function cancelT(id) {
-  if (!confirm('Anulo udëtimin?')) return;
-  try { await apiFetch('/trips/'+id+'/cancel','PATCH'); toast('Udëtimi u anulua.','info'); loadDriverTab(); }
+  if (!confirm('Anulo udhëtimin?')) return;
+  try { await apiFetch('/trips/'+id+'/cancel','PATCH'); toast('Udhëtimi u anulua.','info'); loadDriverTab(); }
   catch(e) { toast(e.message,'error'); }
 }
 
