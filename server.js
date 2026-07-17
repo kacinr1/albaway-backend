@@ -438,7 +438,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
 });
 
-app.post('/api/auth/reset-request', async (req, res) => {
+app.post('/api/auth/reset-request', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email requis' });
