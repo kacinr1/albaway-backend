@@ -346,7 +346,7 @@ async function renderHome() {
       <div class="hero-stats">
         <div class="hs"><div class="hs-num">18+</div><div class="hs-lbl">${t('stat_cities')}</div></div>
         <div class="hs"><div class="hs-num">CH·DE·AT·UK</div><div class="hs-lbl">Shtete</div></div>
-        <div class="hs"><div class="hs-num">100%</div><div class="hs-lbl">Falas</div></div>
+        <div class="hs"><div class="hs-num">Stripe 🔒</div><div class="hs-lbl">Pagesë e sigurt</div></div>
       </div>
       <div class="scroll-hint"><span>${t('scroll')}</span><div class="scroll-bar"></div></div>
     </section>
