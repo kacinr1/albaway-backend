@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "ch.albaway.twa",
+        "sha256_cert_fingerprints": ["F2:2E:E8:47:04:B7:74:CB:48:27:E7:9F:E2:C6:AD:9D:3E:A6:6B:50:11:C9:B9:08:76:D4:B2:27:6C:D2:96:B4"]
+      }
+    }]
