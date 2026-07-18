@@ -60,14 +60,14 @@ app.use(cors(corsOptions));
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc:  ["'self'"],
-      scriptSrc:   ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://js.stripe.com', 'https://fonts.googleapis.com'],
-      styleSrc:    ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc:     ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc:      ["'self'", 'data:', 'https://images.unsplash.com'],
-      connectSrc:  ["'self'", 'https://js.stripe.com'],
-      frameSrc:    ["'none'"],
-      objectSrc:   ["'none'"],
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src":  ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://js.stripe.com", "https://fonts.googleapis.com"],
+      "style-src":   ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+      "font-src":    ["'self'", "https://fonts.gstatic.com"],
+      "img-src":     ["'self'", "data:", "https://images.unsplash.com", "https://*.basemaps.cartocdn.com"],
+      "connect-src": ["'self'", "wss://albaway.ch", "https://albaway.ch", "https://api.stripe.com"],
+      "frame-src":   ["'none'"],
+      "object-src":  ["'none'"],
     },
   },
   hsts:                        { maxAge: 31536000, includeSubDomains: true },
@@ -77,6 +77,11 @@ app.use(helmet({
 app.use(express.json({
   verify: (req, res, buf) => { if (req.path === '/api/stripe/webhook') req.rawBody = buf; }
 }));
+// Route PWA mobile
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'app.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function uid() { return crypto.randomUUID(); }
@@ -291,6 +296,37 @@ io.on('connection', socket => {
   });
   socket.on('disconnect', () => {
     if (socket.userId) userSockets.delete(socket.userId);
+  });
+
+  socket.on('join', ({ booking_id }) => {
+    if (booking_id) socket.join(`booking_${booking_id}`);
+  });
+
+  // === LIVE TRACKING : conducteur partage sa position GPS ===
+  socket.on('location:update', async (data) => {
+    try {
+      const { booking_id, lat, lng, speed } = data || {};
+      if (!booking_id || typeof lat !== 'number' || typeof lng !== 'number') return;
+
+      // Vérifie que l'émetteur est bien le conducteur du trajet, et que le passager a payé
+      const result = await pool.query(
+        `SELECT t.driver_id, b.passenger_id, b.payment_status
+         FROM bookings b JOIN trips t ON t.id = b.trip_id
+         WHERE b.id = $1`,
+        [booking_id]
+      );
+      if (!result.rows.length) return;
+      const { driver_id, payment_status } = result.rows[0];
+
+      // Sécurité : seul le conducteur émet, seuls les passagers PAYÉS reçoivent
+      if (socket.userId !== driver_id) return;
+      if (payment_status !== 'paid') return;
+
+      // Relais temps réel uniquement — AUCUN stockage DB (bon pour LPD/RGPD)
+      io.to(`booking_${booking_id}`).emit('location:update', { booking_id, lat, lng, speed });
+    } catch (err) {
+      console.error('location:update error', err.message);
+    }
   });
 
   socket.on('send_message', async ({ booking_id, to_id, text }) => {

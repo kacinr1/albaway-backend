@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>AlbaWay — Bashkudhëtim</title>
+<meta name="description" content="AlbaWay — bashkudhëtim për diasporën shqiptare. CH · DE · AT · UK → Kosovë · Shqipëri · Maqedoni.">
+<meta name="theme-color" content="#0B0D12">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AlbaWay">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#0B0D12;
+  --bg-2:#11141C;
+  --glass:rgba(255,255,255,.055);
+  --glass-strong:rgba(255,255,255,.09);
+  --stroke:rgba(255,255,255,.10);
+  --text:#F2F3F7;
+  --muted:#9BA1B0;
+  --kuq:#DA291C;          /* rouge albanais */
+  --kuq-soft:rgba(218,41,28,.16);
+  --ok:#3DDC84;
+  --warn:#F5B942;
+  --radius:20px;
+  --tabbar-h:calc(64px + env(safe-area-inset-bottom));
+  --font-display:'Space Grotesk',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.5;
+  overscroll-behavior-y:none;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(600px 400px at 85% -5%, rgba(218,41,28,.14), transparent 60%),
+    radial-gradient(500px 500px at -10% 100%, rgba(60,90,220,.10), transparent 60%),
+    var(--bg);
+}
+h1,h2,h3,.display{font-family:var(--font-display);letter-spacing:-.01em}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{
+  font-family:inherit;font-size:15px;color:var(--text);
+  background:var(--glass);border:1px solid var(--stroke);
+  border-radius:14px;padding:13px 15px;width:100%;outline:none;
+  transition:border-color .15s;
+}
+input:focus,select:focus,textarea:focus{border-color:rgba(218,41,28,.55)}
+input::placeholder{color:#6B7180}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--kuq);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* ---------- layout ---------- */
+.screen{
+  display:none;min-height:100dvh;
+  padding:calc(18px + env(safe-area-inset-top)) 18px calc(var(--tabbar-h) + 20px);
+  max-width:520px;margin:0 auto;
+}
+.screen.active{display:block;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.glass{
+  background:var(--glass);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.card{padding:16px;margin-bottom:12px}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .eagle{
+  width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#DA291C,#8E120B);
+  font-size:19px;box-shadow:0 4px 18px rgba(218,41,28,.35);
+}
+.brand b{font-family:var(--font-display);font-size:19px}
+.brand b span{color:var(--kuq)}
+.lang-switch{display:flex;gap:4px;padding:4px;border-radius:12px}
+.lang-switch button{padding:5px 9px;border-radius:9px;font-size:12px;font-weight:600;color:var(--muted)}
+.lang-switch button.on{background:var(--kuq);color:#fff}
+
+/* ---------- route line (signature) ---------- */
+.route{display:flex;align-items:center;gap:8px;min-width:0}
+.route .city{font-family:var(--font-display);font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route .line{
+  flex:1;height:2px;min-width:26px;position:relative;border-radius:2px;
+  background:repeating-linear-gradient(90deg,var(--kuq) 0 6px,transparent 6px 12px);
+  animation:dash 1.6s linear infinite;background-size:200% 100%;
+}
+@keyframes dash{to{background-position:-24px 0}}
+.route .line::before,.route .line::after{
+  content:"";position:absolute;top:50%;width:7px;height:7px;border-radius:50%;
+  transform:translateY(-50%);background:var(--text);
+}
+.route .line::before{left:-2px}
+.route .line::after{right:-2px;background:var(--kuq)}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:15px;border-radius:15px;font-weight:600;font-size:15px;
+  background:linear-gradient(135deg,#E6362A,#B31A0F);color:#fff;
+  box-shadow:0 6px 22px rgba(218,41,28,.32);
+  transition:transform .12s,box-shadow .12s;
+}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--glass-strong);box-shadow:none;color:var(--text);border:1px solid var(--stroke)}
+.btn.small{width:auto;padding:9px 15px;font-size:13px;border-radius:11px}
+.btn.ok{background:linear-gradient(135deg,#2FBF71,#1E8E52);box-shadow:0 6px 22px rgba(61,220,132,.25)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+
+/* ---------- auth ---------- */
+.auth-hero{text-align:center;padding:34px 0 26px}
+.auth-hero .eagle-big{
+  width:76px;height:76px;margin:0 auto 16px;border-radius:24px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#DA291C,#7E0F08);font-size:38px;
+  box-shadow:0 10px 40px rgba(218,41,28,.4);
+}
+.auth-hero h1{font-size:30px}
+.auth-hero h1 span{color:var(--kuq)}
+.auth-hero p{color:var(--muted);font-size:14px;margin-top:6px}
+.auth-hero .mini-route{max-width:250px;margin:18px auto 0}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.auth-alt{text-align:center;margin-top:16px;font-size:14px;color:var(--muted)}
+.auth-alt button{color:var(--kuq);font-weight:600}
+.form-msg{font-size:13.5px;margin:10px 0;padding:11px 13px;border-radius:12px;display:none}
+.form-msg.err{display:block;background:var(--kuq-soft);color:#FF8B82;border:1px solid rgba(218,41,28,.3)}
+.form-msg.ok{display:block;background:rgba(61,220,132,.12);color:var(--ok);border:1px solid rgba(61,220,132,.25)}
+
+/* ---------- search ---------- */
+.hello{margin-bottom:16px}
+.hello h2{font-size:23px}
+.hello p{color:var(--muted);font-size:14px}
+.search-box{padding:16px}
+.swap-row{position:relative}
+.swap-btn{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  width:34px;height:34px;border-radius:50%;background:var(--glass-strong);
+  border:1px solid var(--stroke);display:grid;place-items:center;font-size:15px;z-index:2;
+}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.autocomplete{position:relative}
+.ac-list{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;
+  background:#171A23;border:1px solid var(--stroke);border-radius:14px;
+  overflow:hidden;display:none;max-height:210px;overflow-y:auto;
+  box-shadow:0 14px 40px rgba(0,0,0,.5);
+}
+.ac-list.open{display:block}
+.ac-list button{display:flex;gap:9px;width:100%;text-align:left;padding:11px 14px;font-size:14px}
+.ac-list button:active{background:var(--glass-strong)}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 12px}
+.section-title h3{font-size:16.5px}
+.section-title span{font-size:12.5px;color:var(--muted)}
+
+/* ---------- trip card ---------- */
+.trip{padding:15px}
+.trip-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:11px}
+.trip .price{font-family:var(--font-display);font-weight:700;font-size:19px;color:var(--kuq);white-space:nowrap}
+.trip .price small{font-size:11px;color:var(--muted);font-weight:500;display:block;text-align:right}
+.trip-meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.chip{
+  font-size:12px;font-weight:500;color:var(--muted);
+  background:var(--glass-strong);border:1px solid var(--stroke);
+  padding:5px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;
+}
+.chip.hot{color:#FFB4AC;background:var(--kuq-soft);border-color:rgba(218,41,28,.3)}
+.trip-foot{display:flex;justify-content:space-between;align-items:center}
+.driver{display:flex;align-items:center;gap:9px}
+.avatar{
+  width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(135deg,#2A2F3C,#171A23);border:1px solid var(--stroke);
+  font-family:var(--font-display);font-weight:600;font-size:14px;
+}
+.driver .nm{font-size:13.5px;font-weight:600;line-height:1.2}
+.driver .st{font-size:12px;color:var(--warn)}
+.empty{padding:34px 16px;text-align:center;color:var(--muted)}
+.empty .big{font-size:34px;margin-bottom:8px}
+
+/* ---------- detail / booking ---------- */
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:14px;font-weight:600;margin-bottom:14px}
+.detail-price{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;margin:14px 0;
+}
+.detail-price .tot{font-family:var(--font-display);font-size:24px;font-weight:700}
+.detail-price .tot small{font-size:12px;color:var(--muted);display:block;font-weight:500}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--stroke);font-size:14px}
+.kv:last-child{border-bottom:none}
+.kv b{font-weight:600}
+.kv span{color:var(--muted)}
+.status{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+.status.pending{background:rgba(245,185,66,.14);color:var(--warn)}
+.status.accepted{background:rgba(61,220,132,.13);color:var(--ok)}
+.status.paid{background:var(--kuq-soft);color:#FF9C94}
+.status.refused,.status.cancelled{background:var(--glass-strong);color:var(--muted)}
+
+/* ---------- tabs list ---------- */
+.seg{display:flex;gap:6px;padding:5px;margin-bottom:14px}
+.seg button{flex:1;padding:9px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--glass-strong);color:var(--text)}
+
+/* ---------- chat ---------- */
+.chat-screen{display:flex;flex-direction:column;height:calc(100dvh - var(--tabbar-h))}
+.chat-head{display:flex;align-items:center;gap:11px;padding-bottom:13px;border-bottom:1px solid var(--stroke)}
+.chat-head .nm{font-weight:700;font-family:var(--font-display)}
+.chat-head .sub{font-size:12px;color:var(--ok)}
+.chat-body{flex:1;overflow-y:auto;padding:14px 2px;display:flex;flex-direction:column;gap:9px}
+.bubble{
+  max-width:78%;padding:10px 14px;border-radius:17px;font-size:14.5px;
+  background:var(--glass-strong);border:1px solid var(--stroke);align-self:flex-start;
+  border-bottom-left-radius:6px;
+}
+.bubble.me{
+  align-self:flex-end;background:linear-gradient(135deg,#D6301F,#A1170C);
+  border:none;border-bottom-left-radius:17px;border-bottom-right-radius:6px;
+}
+.bubble time{display:block;font-size:10.5px;opacity:.65;margin-top:3px}
+.chat-input{display:flex;gap:9px;padding-top:11px}
+.chat-input input{flex:1}
+.chat-input .send{
+  width:48px;height:48px;flex:none;border-radius:50%;
+  background:linear-gradient(135deg,#E6362A,#B31A0F);display:grid;place-items:center;font-size:18px;
+}
+.thread{display:flex;align-items:center;gap:11px;padding:13px}
+.thread .info{flex:1;min-width:0}
+.thread .info b{font-size:14.5px;display:block}
+.thread .info span{font-size:12.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- live tracking ---------- */
+#map{height:46dvh;border-radius:var(--radius);border:1px solid var(--stroke);z-index:1}
+.live-badge{
+  display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+  color:#FF9C94;background:var(--kuq-soft);border:1px solid rgba(218,41,28,.35);
+  padding:5px 11px;border-radius:999px;margin-bottom:11px;
+}
+.live-badge i{width:8px;height:8px;border-radius:50%;background:var(--kuq);animation:pulse 1.2s ease infinite}
+@keyframes pulse{50%{opacity:.35;transform:scale(.8)}}
+.track-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}
+.stat{padding:12px;text-align:center}
+.stat b{font-family:var(--font-display);font-size:17px;display:block}
+.stat span{font-size:11.5px;color:var(--muted)}
+.share-loc{margin-top:12px}
+
+/* ---------- profile ---------- */
+.profile-head{text-align:center;padding:22px 16px}
+.profile-head .avatar{width:70px;height:70px;font-size:26px;margin:0 auto 11px}
+.profile-head h2{font-size:21px}
+.profile-head p{color:var(--muted);font-size:13.5px}
+.stars{color:var(--warn);letter-spacing:2px;margin-top:5px}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;font-size:14.5px;font-weight:500;border-bottom:1px solid var(--stroke);text-align:left}
+.menu button:last-child{border-bottom:none}
+.menu button span{flex:1}
+.menu .danger{color:#FF8B82}
+
+/* ---------- tab bar ---------- */
+.tabbar{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(10px + env(safe-area-inset-bottom));
+  width:min(96%,500px);z-index:50;
+  display:flex;justify-content:space-around;padding:9px 6px;
+  background:rgba(17,20,28,.82);border:1px solid var(--stroke);
+  border-radius:24px;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  box-shadow:0 12px 44px rgba(0,0,0,.55);
+}
+.tabbar button{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:10.5px;font-weight:600;color:var(--muted);flex:1;padding:4px 0;
+  border-radius:14px;transition:color .15s;
+}
+.tabbar button .ic{font-size:19px;line-height:1}
+.tabbar button.on{color:#fff}
+.tabbar button.on .ic{filter:drop-shadow(0 0 10px rgba(218,41,28,.8))}
+.hidden{display:none!important}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%) translateY(20px);
+  bottom:calc(var(--tabbar-h) + 14px);z-index:99;opacity:0;pointer-events:none;
+  background:#1C202B;border:1px solid var(--stroke);border-radius:14px;
+  padding:11px 17px;font-size:13.5px;font-weight:500;
+  box-shadow:0 10px 34px rgba(0,0,0,.5);transition:all .25s ease;max-width:88%;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.demo-banner{
+  font-size:11.5px;color:var(--warn);background:rgba(245,185,66,.1);
+  border:1px solid rgba(245,185,66,.25);border-radius:11px;
+  padding:8px 12px;margin-bottom:13px;display:none;
+}
+.demo-banner.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="scr-login" class="screen active">
+  <div class="auth-hero">
+    <div class="eagle-big">🦅</div>
+    <h1>Alba<span>Way</span></h1>
+    <p data-i18n="tagline">Bashkudhëtim për diasporën shqiptare</p>
+    <div class="mini-route route">
+      <span class="city">🇨🇭 Zürich</span><span class="line"></span><span class="city">Prishtinë 🇽🇰</span>
+    </div>
+  </div>
+  <div class="glass card">
+    <div class="field"><label data-i18n="email">Email</label><input id="li-email" type="email" autocomplete="email" placeholder="emri@email.com"></div>
+    <div class="field"><label data-i18n="password">Fjalëkalimi</label><input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <div id="li-msg" class="form-msg"></div>
+    <button class="btn" id="btn-login" data-i18n="login">Kyçu</button>
+    <div class="auth-alt">
+      <button id="link-reset" data-i18n="forgot">Harrove fjalëkalimin?</button>
+    </div>
+  </div>
+  <div class="auth-alt"><span data-i18n="noacc">S'ke llogari?</span> <button id="link-register" data-i18n="register">Regjistrohu</button></div>
+</section>
+
+<!-- ============ REGISTER ============ -->
+<section id="scr-register" class="screen">
+  <button class="back" data-goto="scr-login">‹ <span data-i18n="back">Kthehu</span></button>
+  <h2 style="margin-bottom:16px" data-i18n="createacc">Krijo llogari</h2>
+  <div class="glass card">
+    <div class="field"><label data-i18n="name">Emri i plotë</label><input id="rg-name" autocomplete="name" placeholder="Arben Krasniqi"></div>
+    <div class="field"><label data-i18n="email">Email</label><input id="rg-email" type="email" autocomplete="email" placeholder="emri@email.com"></div>
+    <div class="field"><label data-i18n="phone">Telefoni</label><input id="rg-phone" type="tel" autocomplete="tel" placeholder="+41 79 ..."></div>
+    <div class="field"><label data-i18n="password">Fjalëkalimi</label><input id="rg-pass" type="password" autocomplete="new-password" placeholder="min. 6 karaktere"></div>
+    <div id="rg-msg" class="form-msg"></div>
+    <button class="btn" id="btn-register" data-i18n="register">Regjistrohu</button>
+  </div>
+</section>
+
+<!-- ============ SEARCH / HOME ============ -->
+<section id="scr-search" class="screen">
+  <div class="topbar">
+    <div class="brand"><div class="eagle">🦅</div><b>Alba<span>Way</span></b></div>
+    <div class="lang-switch glass" id="langs"></div>
+  </div>
+  <div class="demo-banner" id="demo-banner">⚠️ Mode démo — API non connectée. Déploie sur albaway.ch pour les vraies données.</div>
+  <div class="hello">
+    <h2 id="hello-name">Mirëdita! 👋</h2>
+    <p data-i18n="whereto">Ku po udhëton sot?</p>
+  </div>
+  <div class="glass search-box">
+    <div class="field autocomplete swap-row">
+      <label data-i18n="from">Nisja</label>
+      <input id="q-from" placeholder="Zürich, Genève, Stuttgart…" autocomplete="off">
+      <button class="swap-btn" id="btn-swap" aria-label="Swap">⇅</button>
+      <div class="ac-list" id="ac-from"></div>
+    </div>
+    <div class="field autocomplete">
+      <label data-i18n="to">Destinacioni</label>
+      <input id="q-to" placeholder="Prishtinë, Tiranë, Shkup…" autocomplete="off">
+      <div class="ac-list" id="ac-to"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-i18n="date">Data</label><input id="q-date" type="date"></div>
+      <div class="field"><label data-i18n="seats">Vende</label>
+        <select id="q-seats"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+      </div>
+    </div>
+    <button class="btn" id="btn-search">🔍 <span data-i18n="search">Kërko udhëtime</span></button>
+  </div>
+  <div class="section-title"><h3 data-i18n="upcoming">Udhëtimet e ardhshme</h3><span id="results-count"></span></div>
+  <div id="results"></div>
+</section>
+
+<!-- ============ TRIP DETAIL ============ -->
+<section id="scr-detail" class="screen">
+  <button class="back" data-goto="scr-search">‹ <span data-i18n="back">Kthehu</span></button>
+  <div id="detail-body"></div>
+</section>
+
+<!-- ============ MY TRIPS ============ -->
+<section id="scr-mytrips" class="screen">
+  <div class="topbar"><div class="brand"><div class="eagle">🦅</div><b data-i18n="mytrips">Udhëtimet</b></div></div>
+  <div class="seg glass">
+    <button class="on" id="seg-pass" data-i18n="aspassenger">Si pasagjer</button>
+    <button id="seg-drv" data-i18n="asdriver">Si shofer</button>
+  </div>
+  <div id="mytrips-list"></div>
+</section>
+
+<!-- ============ CHAT LIST ============ -->
+<section id="scr-chats" class="screen">
+  <div class="topbar"><div class="brand"><div class="eagle">💬</div><b>Chat</b></div></div>
+  <div id="chat-list"></div>
+</section>
+
+<!-- ============ CHAT ROOM ============ -->
+<section id="scr-chatroom" class="screen">
+  <div class="chat-screen">
+    <button class="back" data-goto="scr-chats">‹ <span data-i18n="back">Kthehu</span></button>
+    <div class="chat-head">
+      <div class="avatar" id="cr-avatar">A</div>
+      <div><div class="nm" id="cr-name">—</div><div class="sub" id="cr-sub">online</div></div>
+      <button class="btn small ghost" style="margin-left:auto" id="cr-track">🚗 Live</button>
+    </div>
+    <div class="chat-body" id="chat-body"></div>
+    <div class="chat-input">
+      <input id="chat-text" data-i18n-ph="writemsg" placeholder="Shkruaj mesazh…">
+      <button class="send" id="chat-send">➤</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIVE TRACKING ============ -->
+<section id="scr-track" class="screen">
+  <div class="topbar"><div class="brand"><div class="eagle">🚗</div><b data-i18n="livetrack">Ndjekje Live</b></div></div>
+  <div class="live-badge"><i></i> LIVE — <span id="track-route">Zürich → Prishtinë</span></div>
+  <div id="map"></div>
+  <div class="track-stats">
+    <div class="glass stat"><b id="st-speed">—</b><span data-i18n="speed">Shpejtësia</span></div>
+    <div class="glass stat"><b id="st-eta">—</b><span>ETA</span></div>
+    <div class="glass stat"><b id="st-upd">—</b><span data-i18n="lastupd">Përditësuar</span></div>
+  </div>
+  <button class="btn share-loc" id="btn-share-loc">📡 <span data-i18n="sharemyloc">Ndaj vendndodhjen time (shofer)</span></button>
+  <p style="font-size:12px;color:var(--muted);margin-top:9px" data-i18n="lochint">Vendndodhja ndahet vetëm me pasagjerët e udhëtimit aktiv, gjatë udhëtimit.</p>
+</section>
+
+<!-- ============ PROFILE ============ -->
+<section id="scr-profile" class="screen">
+  <div class="glass profile-head card">
+    <div class="avatar" id="pf-avatar">A</div>
+    <h2 id="pf-name">—</h2>
+    <p id="pf-email">—</p>
+    <div class="stars" id="pf-stars"></div>
+  </div>
+  <div class="glass menu">
+    <button id="btn-publish">🚘 <span data-i18n="publish">Publiko një udhëtim</span> ›</button>
+    <button data-ext="https://albaway.ch/faq.html">❓ <span>FAQ</span> ›</button>
+    <button data-ext="https://albaway.ch/legal.html">📄 <span data-i18n="legal">Kushtet & GDPR</span> ›</button>
+    <button class="danger" id="btn-logout">↪ <span data-i18n="logout">Dilni</span></button>
+  </div>
+  <p style="text-align:center;color:var(--muted);font-size:11.5px;margin-top:16px">AlbaWay © 2026 · albaway.ch · v1.0 PWA</p>
+</section>
+
+<!-- ============ PUBLISH ============ -->
+<section id="scr-publish" class="screen">
+  <button class="back" data-goto="scr-profile">‹ <span data-i18n="back">Kthehu</span></button>
+  <h2 style="margin-bottom:16px" data-i18n="publish">Publiko një udhëtim</h2>
+  <div class="glass card">
+    <div class="row2">
+      <div class="field"><label data-i18n="from">Nisja</label><input id="p-from" placeholder="Zürich"></div>
+      <div class="field"><label data-i18n="to">Destinacioni</label><input id="p-to" placeholder="Prishtinë"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-i18n="date">Data</label><input id="p-date" type="date"></div>
+      <div class="field"><label data-i18n="time">Ora</label><input id="p-time" type="time" value="06:00"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-i18n="seats">Vende</label><select id="p-seats"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
+      <div class="field"><label data-i18n="priceseat">Çmimi / vend (€)</label><input id="p-price" type="number" placeholder="80"></div>
+    </div>
+    <div class="field"><label data-i18n="notes">Shënime</label><textarea id="p-notes" rows="2" placeholder="Nisje nga HB, 2 valixhe max…"></textarea></div>
+    <div id="p-msg" class="form-msg"></div>
+    <button class="btn" id="btn-publish-go" data-i18n="publishgo">Publiko</button>
+  </div>
+</section>
+
+<!-- ============ TAB BAR ============ -->
+<nav class="tabbar hidden" id="tabbar">
+  <button data-tab="scr-search" class="on"><span class="ic">🔍</span><span data-i18n="tabsearch">Kërko</span></button>
+  <button data-tab="scr-mytrips"><span class="ic">🎫</span><span data-i18n="tabtrips">Udhëtimet</span></button>
+  <button data-tab="scr-track"><span class="ic">🚗</span><span>Live</span></button>
+  <button data-tab="scr-chats"><span class="ic">💬</span><span>Chat</span></button>
+  <button data-tab="scr-profile"><span class="ic">👤</span><span data-i18n="tabprofile">Profili</span></button>
+</nav>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* =========================================================
+   AlbaWay Mobile PWA — se connecte à l'API existante (même origine)
+   En dehors d'albaway.ch → bascule en MODE DÉMO automatiquement
+   ========================================================= */
+const API = ''; // même origine (albaway.ch) — CORS déjà OK
+let TOKEN = localStorage.getItem('aw_token') || null;
+let ME = JSON.parse(localStorage.getItem('aw_me') || 'null');
+let DEMO = false;
+let socket = null;
+let currentTrip = null, currentBooking = null;
+let map = null, carMarker = null, routeLine = null, watchId = null;
+
+/* ---------- i18n (sq par défaut, fr/de/en) ---------- */
+const I18N = {
+  sq:{tagline:"Bashkudhëtim për diasporën shqiptare",email:"Email",password:"Fjalëkalimi",login:"Kyçu",forgot:"Harrove fjalëkalimin?",noacc:"S'ke llogari?",register:"Regjistrohu",back:"Kthehu",createacc:"Krijo llogari",name:"Emri i plotë",phone:"Telefoni",whereto:"Ku po udhëton sot?",from:"Nisja",to:"Destinacioni",date:"Data",seats:"Vende",search:"Kërko udhëtime",upcoming:"Udhëtimet e ardhshme",mytrips:"Udhëtimet",aspassenger:"Si pasagjer",asdriver:"Si shofer",livetrack:"Ndjekje Live",speed:"Shpejtësia",lastupd:"Përditësuar",sharemyloc:"Ndaj vendndodhjen time (shofer)",lochint:"Vendndodhja ndahet vetëm me pasagjerët e udhëtimit aktiv, gjatë udhëtimit.",publish:"Publiko një udhëtim",legal:"Kushtet & GDPR",logout:"Dilni",time:"Ora",priceseat:"Çmimi / vend (€)",notes:"Shënime",publishgo:"Publiko",tabsearch:"Kërko",tabtrips:"Udhëtimet",tabprofile:"Profili",writemsg:"Shkruaj mesazh…",book:"Rezervo",pay:"Paguaj me Stripe",total:"Totali (me 8% shërbim)",hello:"Mirëdita",noresults:"Asnjë udhëtim — provo një datë tjetër",booked:"Rezervimi u dërgua! Prit konfirmimin e shoferit.",published:"Udhëtimi u publikua!"},
+  fr:{tagline:"Covoiturage pour la diaspora albanaise",email:"Email",password:"Mot de passe",login:"Connexion",forgot:"Mot de passe oublié ?",noacc:"Pas de compte ?",register:"S'inscrire",back:"Retour",createacc:"Créer un compte",name:"Nom complet",phone:"Téléphone",whereto:"Où voyages-tu aujourd'hui ?",from:"Départ",to:"Destination",date:"Date",seats:"Places",search:"Chercher un trajet",upcoming:"Prochains trajets",mytrips:"Trajets",aspassenger:"Passager",asdriver:"Conducteur",livetrack:"Suivi Live",speed:"Vitesse",lastupd:"Mis à jour",sharemyloc:"Partager ma position (conducteur)",lochint:"La position n'est partagée qu'avec les passagers du trajet actif, pendant le trajet.",publish:"Publier un trajet",legal:"CGV & RGPD",logout:"Déconnexion",time:"Heure",priceseat:"Prix / place (€)",notes:"Notes",publishgo:"Publier",tabsearch:"Chercher",tabtrips:"Trajets",tabprofile:"Profil",writemsg:"Écris un message…",book:"Réserver",pay:"Payer avec Stripe",total:"Total (avec 8% de service)",hello:"Bonjour",noresults:"Aucun trajet — essaie une autre date",booked:"Réservation envoyée ! Attends la confirmation du conducteur.",published:"Trajet publié !"},
+  de:{tagline:"Mitfahrgelegenheiten für die albanische Diaspora",email:"E-Mail",password:"Passwort",login:"Anmelden",forgot:"Passwort vergessen?",noacc:"Kein Konto?",register:"Registrieren",back:"Zurück",createacc:"Konto erstellen",name:"Vollständiger Name",phone:"Telefon",whereto:"Wohin reist du heute?",from:"Abfahrt",to:"Ziel",date:"Datum",seats:"Plätze",search:"Fahrten suchen",upcoming:"Kommende Fahrten",mytrips:"Fahrten",aspassenger:"Mitfahrer",asdriver:"Fahrer",livetrack:"Live-Tracking",speed:"Tempo",lastupd:"Aktualisiert",sharemyloc:"Meinen Standort teilen (Fahrer)",lochint:"Der Standort wird nur mit Mitfahrern der aktiven Fahrt geteilt.",publish:"Fahrt veröffentlichen",legal:"AGB & DSGVO",logout:"Abmelden",time:"Zeit",priceseat:"Preis / Platz (€)",notes:"Notizen",publishgo:"Veröffentlichen",tabsearch:"Suchen",tabtrips:"Fahrten",tabprofile:"Profil",writemsg:"Nachricht schreiben…",book:"Buchen",pay:"Mit Stripe zahlen",total:"Gesamt (inkl. 8% Service)",hello:"Guten Tag",noresults:"Keine Fahrten — versuche ein anderes Datum",booked:"Buchung gesendet! Warte auf Bestätigung.",published:"Fahrt veröffentlicht!"},
+  en:{tagline:"Carpooling for the Albanian diaspora",email:"Email",password:"Password",login:"Log in",forgot:"Forgot password?",noacc:"No account?",register:"Sign up",back:"Back",createacc:"Create account",name:"Full name",phone:"Phone",whereto:"Where are you traveling today?",from:"From",to:"To",date:"Date",seats:"Seats",search:"Search trips",upcoming:"Upcoming trips",mytrips:"Trips",aspassenger:"Passenger",asdriver:"Driver",livetrack:"Live Tracking",speed:"Speed",lastupd:"Updated",sharemyloc:"Share my location (driver)",lochint:"Location is only shared with passengers of the active trip, during the trip.",publish:"Publish a trip",legal:"Terms & GDPR",logout:"Log out",time:"Time",priceseat:"Price / seat (€)",notes:"Notes",publishgo:"Publish",tabsearch:"Search",tabtrips:"Trips",tabprofile:"Profile",writemsg:"Write a message…",book:"Book",pay:"Pay with Stripe",total:"Total (incl. 8% service)",hello:"Hello",noresults:"No trips — try another date",booked:"Booking sent! Wait for the driver's confirmation.",published:"Trip published!"}
+};
+let LANG = localStorage.getItem('aw_lang') || 'sq';
+const t = k => (I18N[LANG] && I18N[LANG][k]) || I18N.sq[k] || k;
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>el.placeholder=t(el.dataset.i18nPh));
+  document.querySelectorAll('#langs button').forEach(b=>b.classList.toggle('on',b.dataset.l===LANG));
+}
+(function buildLangs(){
+  const box = document.getElementById('langs');
+  ['sq','fr','de','en'].forEach(l=>{
+    const b=document.createElement('button');b.textContent=l.toUpperCase();b.dataset.l=l;
+    b.onclick=()=>{LANG=l;localStorage.setItem('aw_lang',l);applyI18n();renderResults(lastResults);};
+    box.appendChild(b);
+  });
+})();
+
+/* ---------- villes (autocomplete) ---------- */
+const CITIES = ["Zürich 🇨🇭","Genève 🇨🇭","Bern 🇨🇭","Basel 🇨🇭","Lausanne 🇨🇭","Luzern 🇨🇭","St. Gallen 🇨🇭","Stuttgart 🇩🇪","München 🇩🇪","Frankfurt 🇩🇪","Düsseldorf 🇩🇪","Hamburg 🇩🇪","Berlin 🇩🇪","Wien 🇦🇹","Graz 🇦🇹","Salzburg 🇦🇹","London 🇬🇧","Prishtinë 🇽🇰","Prizren 🇽🇰","Pejë 🇽🇰","Gjakovë 🇽🇰","Mitrovicë 🇽🇰","Ferizaj 🇽🇰","Gjilan 🇽🇰","Tiranë 🇦🇱","Durrës 🇦🇱","Shkodër 🇦🇱","Vlorë 🇦🇱","Kukës 🇦🇱","Shkup 🇲🇰","Tetovë 🇲🇰","Gostivar 🇲🇰","Kumanovë 🇲🇰","Strugë 🇲🇰"];
+const CITY_COORDS = {"Zürich":[47.3769,8.5417],"Genève":[46.2044,6.1432],"Bern":[46.948,7.4474],"Basel":[47.5596,7.5886],"Lausanne":[46.5197,6.6323],"Stuttgart":[48.7758,9.1829],"München":[48.1351,11.582],"Wien":[48.2082,16.3738],"Prishtinë":[42.6629,21.1655],"Prizren":[42.2139,20.7397],"Tiranë":[41.3275,19.8187],"Shkup":[41.9973,21.428],"Tetovë":[42.0106,20.9714],"London":[51.5072,-0.1276]};
+function bindAC(inputId,listId){
+  const inp=document.getElementById(inputId),list=document.getElementById(listId);
+  inp.addEventListener('input',()=>{
+    const v=inp.value.trim().toLowerCase();
+    if(v.length<1){list.classList.remove('open');return;}
+    const m=CITIES.filter(c=>c.toLowerCase().includes(v)).slice(0,6);
+    list.innerHTML=m.map(c=>`<button type="button">${c}</button>`).join('');
+    list.classList.toggle('open',m.length>0);
+    list.querySelectorAll('button').forEach(b=>b.onclick=()=>{inp.value=b.textContent.replace(/ [\u{1F1E6}-\u{1F1FF}]{2}$/u,'').trim();list.classList.remove('open');});
+  });
+  inp.addEventListener('blur',()=>setTimeout(()=>list.classList.remove('open'),180));
+}
+bindAC('q-from','ac-from');bindAC('q-to','ac-to');
+document.getElementById('btn-swap').onclick=()=>{const a=document.getElementById('q-from'),b=document.getElementById('q-to');[a.value,b.value]=[b.value,a.value];};
+
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.tab===id));
+  window.scrollTo(0,0);
+  if(id==='scr-track') setTimeout(initMap,60);
+}
+document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>show(b.dataset.goto));
+document.querySelectorAll('[data-ext]').forEach(b=>b.onclick=()=>window.open(b.dataset.ext,'_blank'));
+document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+function initials(n){return (n||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+function fmtDate(d){try{return new Date(d).toLocaleDateString(LANG==='sq'?'sq-AL':LANG,{weekday:'short',day:'numeric',month:'short'});}catch(e){return d;}}
+
+async function api(path,opts={}){
+  if(DEMO) throw new Error('demo');
+  const headers={'Content-Type':'application/json',...(TOKEN?{'Authorization':'Bearer '+TOKEN}:{})};
+  const res=await fetch(API+path,{...opts,headers});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||('HTTP '+res.status));
+  return data;
+}
+
+/* ---------- DEMO data (fallback hors albaway.ch) ---------- */
+const DEMO_TRIPS=[
+  {id:1,driver_id:101,driver_name:"Arben K.",rating:4.9,from_city:"Zürich",to_city:"Prishtinë",date:"2026-07-24",time:"06:00",seats_available:3,price:80,vehicle:{model:"VW Passat",color:"Zi"},notes:"Nisje nga HB Zürich, 2 valixhe max",options:{smoke:false,music:true}},
+  {id:2,driver_id:102,driver_name:"Blerina M.",rating:4.8,from_city:"Stuttgart",to_city:"Tetovë",date:"2026-07-25",time:"05:30",seats_available:2,price:75,vehicle:{model:"Mercedes Vito",color:"Argjend"},notes:"Ndalesa në Shkup",options:{smoke:false,music:true}},
+  {id:3,driver_id:103,driver_name:"Ilir B.",rating:5.0,from_city:"Wien",to_city:"Prishtinë",date:"2026-07-25",time:"07:00",seats_available:4,price:65,vehicle:{model:"Škoda Superb",color:"Blu"},notes:"",options:{smoke:false,music:false}},
+  {id:4,driver_id:104,driver_name:"Vjosa H.",rating:4.7,from_city:"Bern",to_city:"Tiranë",date:"2026-07-26",time:"06:30",seats_available:1,price:90,vehicle:{model:"BMW X3",color:"Bardhë"},notes:"Direkt, pa ndalesa të gjata",options:{smoke:false,music:true}}
+];
+let DEMO_BOOKINGS=[{id:11,trip:DEMO_TRIPS[0],seats:1,status:"accepted",payment_status:"paid"},{id:12,trip:DEMO_TRIPS[2],seats:2,status:"pending",payment_status:"unpaid"}];
+const DEMO_MSGS=[{from_name:"Arben K.",me:false,text:"Mirëdita! Nisemi nesër në 06:00 nga HB Zürich 🚗",time:"09:12"},{me:true,text:"Në rregull, do jem aty në 05:45 👍",time:"09:14"},{from_name:"Arben K.",me:false,text:"Super. Ke 2 valixhe apo më shumë?",time:"09:15"}];
+
+/* ---------- AUTH ---------- */
+$('btn-login').onclick=async()=>{
+  const email=$('li-email').value.trim(),pass=$('li-pass').value;
+  const msg=$('li-msg');msg.className='form-msg';
+  if(!email||!pass){msg.textContent='Plotëso email + fjalëkalim';msg.classList.add('err');return;}
+  $('btn-login').disabled=true;
+  try{
+    const d=await api('/api/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+    TOKEN=d.token;ME=d.user||d.me||{name:email.split('@')[0],email};
+    localStorage.setItem('aw_token',TOKEN);localStorage.setItem('aw_me',JSON.stringify(ME));
+    enterApp();
+  }catch(e){
+    if(String(e.message).includes('demo')||String(e.message).includes('Failed to fetch')){
+      // fallback démo
+      DEMO=true;$('demo-banner').classList.add('show');
+      ME={id:999,name:email.split('@')[0]||'Demo',email,rating:4.9};
+      enterApp();toast('Mode démo activé 🧪');
+    }else{msg.textContent=e.message;msg.classList.add('err');}
+  }
+  $('btn-login').disabled=false;
+};
+$('btn-register').onclick=async()=>{
+  const body={name:$('rg-name').value.trim(),email:$('rg-email').value.trim(),phone:$('rg-phone').value.trim(),password:$('rg-pass').value};
+  const msg=$('rg-msg');msg.className='form-msg';
+  if(!body.name||!body.email||body.password.length<6){msg.textContent='Kontrollo fushat (fjalëkalimi min. 6)';msg.classList.add('err');return;}
+  try{
+    const d=await api('/api/register',{method:'POST',body:JSON.stringify(body)});
+    TOKEN=d.token;ME=d.user||{name:body.name,email:body.email};
+    localStorage.setItem('aw_token',TOKEN);localStorage.setItem('aw_me',JSON.stringify(ME));
+    enterApp();
+  }catch(e){
+    if(String(e.message).includes('Failed to fetch')){DEMO=true;$('demo-banner').classList.add('show');ME={id:999,...body,rating:5};enterApp();toast('Mode démo 🧪');}
+    else{msg.textContent=e.message;msg.classList.add('err');}
+  }
+};
+$('link-register').onclick=()=>show('scr-register');
+$('link-reset').onclick=async()=>{
+  const email=$('li-email').value.trim();
+  if(!email){toast('Shkruaj email-in më parë');return;}
+  try{await api('/api/auth/reset-request',{method:'POST',body:JSON.stringify({email})});toast('📧 Email reset u dërgua!');}
+  catch(e){toast(DEMO?'Démo: pas d\'email':'Gabim: '+e.message);}
+};
+$('btn-logout').onclick=()=>{
+  localStorage.removeItem('aw_token');localStorage.removeItem('aw_me');
+  TOKEN=null;ME=null;if(socket){socket.disconnect();socket=null;}
+  $('tabbar').classList.add('hidden');show('scr-login');
+};
+
+function enterApp(){
+  $('tabbar').classList.remove('hidden');
+  $('hello-name').textContent=`${t('hello')}, ${ME.name.split(' ')[0]}! 👋`;
+  $('pf-name').textContent=ME.name;$('pf-email').textContent=ME.email;
+  $('pf-avatar').textContent=initials(ME.name);
+  const r=ME.rating||5;$('pf-stars').textContent='★'.repeat(Math.round(r))+'☆'.repeat(5-Math.round(r))+`  ${r}`;
+  connectSocket();
+  show('scr-search');
+  doSearch();
+  loadBookings();
+}
+
+/* ---------- SOCKET.IO (chat + live tracking) ---------- */
+function connectSocket(){
+  if(DEMO||!window.io) return;
+  try{
+    socket=io(API||undefined,{auth:{token:TOKEN}});
+    socket.on('message',m=>{ if(currentBooking&&m.booking_id===currentBooking.id) addBubble(m.text,false,m.from_name); });
+    socket.on('booking:update',()=>{loadBookings();toast('🔔 Rezervim i përditësuar');});
+    socket.on('location:update',d=>updateCar(d)); // { booking_id, lat, lng, speed }
+  }catch(e){console.warn('socket',e);}
+}
+
+/* ---------- SEARCH ---------- */
+let lastResults=[];
+async function doSearch(){
+  const from=$('q-from').value.trim(),to=$('q-to').value.trim(),date=$('q-date').value,seats=$('q-seats').value;
+  let trips;
+  try{
+    const qs=new URLSearchParams();if(from)qs.set('from',from);if(to)qs.set('to',to);if(date)qs.set('date',date);if(seats)qs.set('seats',seats);
+    const d=await api('/api/trips?'+qs.toString());
+    trips=d.trips||d;
+  }catch(e){
+    DEMO=true;$('demo-banner').classList.add('show');
+    trips=DEMO_TRIPS.filter(tr=>(!from||tr.from_city.toLowerCase().includes(from.toLowerCase()))&&(!to||tr.to_city.toLowerCase().includes(to.toLowerCase())));
+  }
+  lastResults=trips;renderResults(trips);
+}
+$('btn-search').onclick=doSearch;
+function renderResults(trips){
+  const box=$('results');
+  $('results-count').textContent=trips.length? trips.length+' 🚗':'';
+  if(!trips.length){box.innerHTML=`<div class="glass empty"><div class="big">🛣️</div>${t('noresults')}</div>`;return;}
+  box.innerHTML=trips.map(tr=>`
+    <div class="glass trip" data-id="${tr.id}">
+      <div class="trip-head">
+        <div class="route">
+          <span class="city">${esc(tr.from_city)}</span><span class="line"></span><span class="city">${esc(tr.to_city)}</span>
+        </div>
+        <div class="price">${tr.price}€<small>/ vend</small></div>
+      </div>
+      <div class="trip-meta">
+        <span class="chip">📅 ${fmtDate(tr.date)} · ${esc(tr.time)}</span>
+        <span class="chip ${tr.seats_available<=1?'hot':''}">💺 ${tr.seats_available}</span>
+        ${tr.vehicle&&tr.vehicle.model?`<span class="chip">🚘 ${esc(tr.vehicle.model)}</span>`:''}
+      </div>
+      <div class="trip-foot">
+        <div class="driver">
+          <div class="avatar">${initials(tr.driver_name||'D')}</div>
+          <div><div class="nm">${esc(tr.driver_name||'Shofer')}</div><div class="st">★ ${tr.rating||'—'}</div></div>
+        </div>
+        <button class="btn small" data-open="${tr.id}">${t('book')} ›</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(trips.find(x=>x.id==b.dataset.open)));
+}
+
+/* ---------- DETAIL + BOOKING + STRIPE ---------- */
+function openDetail(tr){
+  currentTrip=tr;
+  const seats=parseInt($('q-seats').value||'1');
+  const base=tr.price*seats, fee=Math.round(base*0.08*100)/100, tot=(base+fee).toFixed(2);
+  $('detail-body').innerHTML=`
+    <div class="glass card">
+      <div class="route" style="margin-bottom:13px">
+        <span class="city" style="font-size:18px">${esc(tr.from_city)}</span><span class="line"></span><span class="city" style="font-size:18px">${esc(tr.to_city)}</span>
+      </div>
+      <div class="kv"><span>📅 ${t('date')}</span><b>${fmtDate(tr.date)} · ${esc(tr.time)}</b></div>
+      <div class="kv"><span>💺 ${t('seats')}</span><b>${tr.seats_available} lira</b></div>
+      ${tr.vehicle&&tr.vehicle.model?`<div class="kv"><span>🚘 Automjeti</span><b>${esc(tr.vehicle.model)} ${esc(tr.vehicle.color||'')}</b></div>`:''}
+      ${tr.notes?`<div class="kv"><span>📝</span><b style="text-align:right;max-width:65%">${esc(tr.notes)}</b></div>`:''}
+    </div>
+    <div class="glass card">
+      <div class="driver">
+        <div class="avatar" style="width:46px;height:46px;font-size:17px">${initials(tr.driver_name||'D')}</div>
+        <div><div class="nm" style="font-size:15px">${esc(tr.driver_name||'Shofer')}</div><div class="st">★ ${tr.rating||'—'} · ${t('asdriver')}</div></div>
+      </div>
+    </div>
+    <div class="glass detail-price">
+      <div><b>${seats} × ${tr.price}€</b> <span style="color:var(--muted);font-size:12.5px">+ 8% (${fee.toFixed(2)}€)</span></div>
+      <div class="tot">${tot}€<small>${t('total')}</small></div>
+    </div>
+    <button class="btn" id="btn-book">🎫 ${t('book')}</button>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">🔒 Pagesa sigurte me Stripe · Kontaktet zbulohen pas pagesës</p>`;
+  $('btn-book').onclick=()=>bookTrip(tr,seats);
+  show('scr-detail');
+}
+async function bookTrip(tr,seats){
+  try{
+    const d=await api('/api/bookings',{method:'POST',body:JSON.stringify({trip_id:tr.id,seats})});
+    toast('✅ '+t('booked'));
+    // dès acceptation → checkout Stripe
+    if(d.booking&&d.booking.id){
+      try{
+        const s=await api(`/api/bookings/${d.booking.id}/checkout`,{method:'POST'});
+        if(s.url) window.location.href=s.url; // Stripe Checkout LIVE
+      }catch(_){/* paiement après acceptation */}
+    }
+    loadBookings();show('scr-mytrips');
+  }catch(e){
+    if(DEMO||String(e.message).includes('Failed')){
+      DEMO_BOOKINGS.unshift({id:Date.now(),trip:tr,seats,status:"pending",payment_status:"unpaid"});
+      toast('🧪 Démo: '+t('booked'));loadBookings();show('scr-mytrips');
+    }else toast('⚠️ '+e.message);
+  }
+}
+
+/* ---------- MY TRIPS ---------- */
+let myBookings=[],myTrips=[],segMode='pass';
+$('seg-pass').onclick=()=>{segMode='pass';$('seg-pass').classList.add('on');$('seg-drv').classList.remove('on');renderMy();};
+$('seg-drv').onclick=()=>{segMode='drv';$('seg-drv').classList.add('on');$('seg-pass').classList.remove('on');renderMy();};
+async function loadBookings(){
+  try{
+    const b=await api('/api/bookings/mine');myBookings=b.bookings||b;
+    const m=await api('/api/trips/mine');myTrips=m.trips||m;
+  }catch(e){myBookings=DEMO_BOOKINGS;myTrips=DEMO?[DEMO_TRIPS[3]]:[];}
+  renderMy();renderChatList();
+}
+function renderMy(){
+  const list=$('mytrips-list');
+  const items=segMode==='pass'?myBookings:myTrips;
+  if(!items.length){list.innerHTML=`<div class="glass empty"><div class="big">🎫</div>${t('noresults')}</div>`;return;}
+  list.innerHTML=items.map(it=>{
+    const tr=it.trip||it;
+    const st=it.payment_status==='paid'?'paid':(it.status||tr.status||'pending');
+    return `<div class="glass trip">
+      <div class="trip-head">
+        <div class="route"><span class="city">${esc(tr.from_city)}</span><span class="line"></span><span class="city">${esc(tr.to_city)}</span></div>
+        <span class="status ${st}">${st}</span>
+      </div>
+      <div class="trip-meta">
+        <span class="chip">📅 ${fmtDate(tr.date)} · ${esc(tr.time||'')}</span>
+        ${it.seats?`<span class="chip">💺 ${it.seats}</span>`:''}
+        <span class="chip">💶 ${tr.price}€</span>
+      </div>
+      <div class="trip-foot">
+        <div></div>
+        <div style="display:flex;gap:8px">
+          ${segMode==='pass'&&st==='accepted'?`<button class="btn small ok" data-pay="${it.id}">💳 ${t('pay')}</button>`:''}
+          ${st==='paid'||st==='accepted'?`<button class="btn small ghost" data-chat="${it.id}">💬 Chat</button>`:''}
+        </div>
+      </div>
+    </div>`;}).join('');
+  list.querySelectorAll('[data-pay]').forEach(b=>b.onclick=async()=>{
+    try{const s=await api(`/api/bookings/${b.dataset.pay}/checkout`,{method:'POST'});if(s.url)window.location.href=s.url;}
+    catch(e){toast(DEMO?'🧪 Démo: paiement Stripe simulé ✅':'⚠️ '+e.message);}
+  });
+  list.querySelectorAll('[data-chat]').forEach(b=>b.onclick=()=>openChat(myBookings.find(x=>x.id==b.dataset.chat)||DEMO_BOOKINGS[0]));
+}
+
+/* ---------- CHAT ---------- */
+function renderChatList(){
+  const box=$('chat-list');
+  const chats=myBookings.filter(b=>['accepted','paid'].includes(b.payment_status==='paid'?'paid':b.status));
+  if(!chats.length){box.innerHTML=`<div class="glass empty"><div class="big">💬</div>—</div>`;return;}
+  box.innerHTML=chats.map(b=>{
+    const tr=b.trip||b;const nm=tr.driver_name||'Shofer';
+    return `<div class="glass thread" data-cid="${b.id}">
+      <div class="avatar">${initials(nm)}</div>
+      <div class="info"><b>${esc(nm)}</b><span>${esc(tr.from_city)} → ${esc(tr.to_city)} · ${fmtDate(tr.date)}</span></div>
+      <span style="color:var(--muted)">›</span>
+    </div>`;}).join('');
+  box.querySelectorAll('[data-cid]').forEach(el=>el.onclick=()=>openChat(myBookings.find(x=>x.id==el.dataset.cid)));
+}
+async function openChat(bk){
+  if(!bk) return;
+  currentBooking=bk;
+  const tr=bk.trip||bk;const nm=tr.driver_name||'Shofer';
+  $('cr-name').textContent=nm;$('cr-avatar').textContent=initials(nm);
+  $('cr-sub').textContent=`${tr.from_city} → ${tr.to_city}`;
+  $('chat-body').innerHTML='';
+  try{
+    const d=await api('/api/messages/'+bk.id);
+    (d.messages||d).forEach(m=>addBubble(m.text,m.from_id===ME.id,m.from_name,m.created_at));
+    if(socket) socket.emit('join',{booking_id:bk.id});
+  }catch(e){DEMO_MSGS.forEach(m=>addBubble(m.text,m.me,m.from_name,m.time));}
+  show('scr-chatroom');
+}
+function addBubble(text,me,name,time){
+  const b=document.createElement('div');
+  b.className='bubble'+(me?' me':'');
+  const tm=time? (String(time).length>6?new Date(time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):time):new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  b.innerHTML=`${esc(text)}<time>${me?'':esc(name||'')+' · '}${tm}</time>`;
+  $('chat-body').appendChild(b);
+  $('chat-body').scrollTop=$('chat-body').scrollHeight;
+}
+$('chat-send').onclick=sendMsg;
+$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+function sendMsg(){
+  const txt=$('chat-text').value.trim();if(!txt||!currentBooking)return;
+  addBubble(txt,true);$('chat-text').value='';
+  if(socket) socket.emit('message',{booking_id:currentBooking.id,text:txt});
+  else if(DEMO) setTimeout(()=>addBubble('Në rregull 👍 (démo)',false,'Arben K.'),900);
+}
+$('cr-track').onclick=()=>show('scr-track');
+
+/* ---------- LIVE TRACKING (signature feature) ---------- */
+function initMap(){
+  if(map){map.invalidateSize();return;}
+  if(!window.L) return;
+  map=L.map('map',{zoomControl:false}).setView([45.5,15.0],5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · CARTO',maxZoom:18}).addTo(map);
+  const tr=(currentBooking&&currentBooking.trip)||DEMO_TRIPS[0];
+  $('track-route').textContent=`${tr.from_city} → ${tr.to_city}`;
+  const a=CITY_COORDS[tr.from_city]||[47.37,8.54], b=CITY_COORDS[tr.to_city]||[42.66,21.16];
+  routeLine=L.polyline([a,b],{color:'#DA291C',weight:3,dashArray:'8 10',opacity:.85}).addTo(map);
+  const carIcon=L.divIcon({html:'<div style="font-size:26px;filter:drop-shadow(0 0 8px rgba(218,41,28,.9))">🚗</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]});
+  carMarker=L.marker(a,{icon:carIcon}).addTo(map);
+  L.marker(a).addTo(map).bindPopup(tr.from_city);
+  L.marker(b).addTo(map).bindPopup(tr.to_city);
+  map.fitBounds(routeLine.getBounds(),{padding:[38,38]});
+  if(DEMO) demoDrive(a,b);
+}
+function updateCar(d){
+  if(!map||!carMarker)return;
+  carMarker.setLatLng([d.lat,d.lng]);
+  $('st-speed').textContent=(d.speed!=null?Math.round(d.speed):'—')+' km/h';
+  $('st-upd').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if(d.eta)$('st-eta').textContent=d.eta;
+}
+function demoDrive(a,b){
+  let p=0.18;
+  setInterval(()=>{
+    p=Math.min(p+0.004,0.97);
+    const lat=a[0]+(b[0]-a[0])*p, lng=a[1]+(b[1]-a[1])*p;
+    updateCar({lat,lng,speed:95+Math.round(Math.random()*30),eta:Math.round((1-p)*11)+'h'+String(Math.round(Math.random()*59)).padStart(2,'0')});
+  },1500);
+}
+/* Conducteur : partager sa position GPS réelle */
+$('btn-share-loc').onclick=()=>{
+  if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;$('btn-share-loc').classList.remove('ok');toast('📡 Partage arrêté');return;}
+  if(!navigator.geolocation){toast('GPS jo i disponueshëm');return;}
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    const d={booking_id:currentBooking?currentBooking.id:null,lat:pos.coords.latitude,lng:pos.coords.longitude,speed:pos.coords.speed?pos.coords.speed*3.6:null};
+    if(socket) socket.emit('location:update',d);
+    updateCar(d);
+    if(map) map.setView([d.lat,d.lng],11);
+  },err=>toast('GPS: '+err.message),{enableHighAccuracy:true,maximumAge:5000});
+  $('btn-share-loc').classList.add('ok');
+  toast('📡 Vendndodhja po ndahet LIVE');
+};
+
+/* ---------- PUBLISH ---------- */
+$('btn-publish').onclick=()=>show('scr-publish');
+$('btn-publish-go').onclick=async()=>{
+  const body={from_city:$('p-from').value.trim(),to_city:$('p-to').value.trim(),date:$('p-date').value,time:$('p-time').value,seats:parseInt($('p-seats').value),price:parseFloat($('p-price').value),notes:$('p-notes').value.trim()};
+  const msg=$('p-msg');msg.className='form-msg';
+  if(!body.from_city||!body.to_city||!body.date||!body.price){msg.textContent='Plotëso fushat kryesore';msg.classList.add('err');return;}
+  try{
+    await api('/api/trips',{method:'POST',body:JSON.stringify(body)});
+    toast('✅ '+t('published'));show('scr-mytrips');loadBookings();
+  }catch(e){
+    if(DEMO||String(e.message).includes('Failed')){DEMO_TRIPS.unshift({id:Date.now(),driver_name:ME.name,rating:5,seats_available:body.seats,...body});toast('🧪 Démo: '+t('published'));show('scr-search');doSearch();}
+    else{msg.textContent=e.message;msg.classList.add('err');}
+  }
+};
+
+/* ---------- SERVICE WORKER (PWA) ---------- */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+/* ---------- BOOT ---------- */
+applyI18n();
+const today=new Date().toISOString().slice(0,10);
+$('q-date').min=today;$('p-date').min=today;
+if(TOKEN&&ME){ enterApp(); }
+</script>
+</body>
+</html>
