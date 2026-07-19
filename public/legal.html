@@ -121,7 +121,7 @@ body{cursor:auto}button{cursor:auto}a{cursor:auto}a[href]{cursor:pointer}
       <p>AlbaWay mban <strong>8% tarifë shërbimi</strong>, e shtuar mbi çmimin e caktuar nga shoferi dhe e paguar nga pasagjeri. Për çdo udhëtim të kryer me sukses, shoferi merr <strong>100% të çmimit të caktuar</strong> prej tij — pa asnjë zbritje shtesë.</p>
       <p style="margin-top:6px">Shembull: Çmimi i shoferit = <strong>80€</strong> → Pasagjeri paguan <strong>86.40€</strong> (80€ + 8% = 6.40€ tarifë shërbimi). Shoferi merr <strong>80€</strong>.</p>
       <p style="margin-top:8px">Pagesat processohen nga <strong>Stripe Inc.</strong> dhe i nënshtrohen Termave të Shërbimit të Stripe.</p>
-      <div class="info-box"><p>📌 Shuma që merr shoferi varet nga rrethana: në rast anulimi nga pasagjeri, shoferi mund të ketë të drejtë për kompensim të pjesshëm ose të plotë sipas politikës së anulimit (shih seksionin <em>Anulimi</em>). Nëse shoferi anulon, pasagjeri rimbursohet plotësisht duke përfshirë tarifën e shërbimit 8%.</p></div>
+      <div class="info-box"><p>📌 Në rast anulimi nga pasagjeri, shoferi mban <strong>të gjithë shumën e paguar</strong> (çmimi + tarifa 8%). Nëse shoferi anulon, pasagjeri rimbursohet plotësisht duke përfshirë tarifën e shërbimit 8%. Shih seksionin <em>Anulimi</em> për detaje mbi përjashtimin mjekësor.</p></div>
     </div>
 
     <div class="legal-section">
@@ -204,53 +204,42 @@ body{cursor:auto}button{cursor:auto}a{cursor:auto}a[href]{cursor:pointer}
   <!-- ANULIMI -->
   <div class="legal-doc" id="doc-cancel">
     <div class="legal-title">Politika e Anulimit dhe Rimbursimit</div>
-    <div class="legal-date">Version 1.0 · Hyrë në fuqi: 1 Korrik 2026</div>
+    <div class="legal-date">Version 2.0 · Hyrë në fuqi: 19 Korrik 2026</div>
 
     <div class="legal-section">
       <h2>Anulimi nga pasagjeri</h2>
-      <table style="width:100%;border-collapse:collapse;margin-top:12px">
-        <tr style="background:rgba(0,61,130,.3)">
-          <th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Koha e anulimit</th>
-          <th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Çmimi</th>
-          <th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Tarifa shërbimi (8%)</th>
-          <th style="padding:12px 16px;text-align:left;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5)">Shoferi merr</th>
-        </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
-          <td style="padding:12px 16px;font-size:.88rem;color:rgba(255,255,255,.6)">48+ orë para nisjes</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#34d399;font-weight:700">100% rimbursohet</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#34d399">Rimbursohet</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:rgba(255,255,255,.4)">Asgjë</td>
-        </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
-          <td style="padding:12px 16px;font-size:.88rem;color:rgba(255,255,255,.6)">24–48 orë para nisjes</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#fbbf24;font-weight:700">70% rimbursohet</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#ff7b7b">Nuk rimbursohet</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#fbbf24">30% i çmimit (kompensim)</td>
-        </tr>
-        <tr>
-          <td style="padding:12px 16px;font-size:.88rem;color:rgba(255,255,255,.6)">Më pak se 24 orë</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#ff7b7b;font-weight:700">Pa rimbursim</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#ff7b7b">Nuk rimbursohet</td>
-          <td style="padding:12px 16px;font-size:.88rem;color:#34d399">100% i çmimit</td>
-        </tr>
-      </table>
-      <p style="margin-top:12px;font-size:.85rem;color:rgba(255,255,255,.4)">Rimbursimi processohet brenda 5–10 ditësh pune varësisht nga banka juaj.</p>
+      <div class="highlight-box">
+        <p>⚠️ <strong>Të gjitha anulimet nga pasagjeri janë DEFINITIVE dhe PA RIMBURSIM</strong>, pavarësisht kohës së anulimit. Duke kryer rezervimin, pasagjeri pranon këtë politikë në mënyrë eksplicite.</p>
+      </div>
+      <p style="margin-top:12px">Çmimi i paguar nga pasagjeri (duke përfshirë tarifën e shërbimit 8%) transferohet <strong>plotësisht te shoferi</strong> pas konfirmimit të rezervimit.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2>Përjashtimi i vetëm — Certifikata mjekësore</h2>
+      <div class="info-box">
+        <p>💊 <strong>Rimbursim i mundshëm</strong> vetëm në rast force majeure mjekësore (sëmundje serioze, aksidenti, emergjencë mjekësore e dokumentuar), me paraqitjen e certifikatës mjekësore zyrtare.</p>
+      </div>
+      <h3>Dokumentet e nevojshme:</h3>
+      <ul>
+        <li>Certifikatë mjekësore origjinale ose kopje e vërtetuar, e lëshuar nga mjek/spital i licencuar</li>
+        <li>Data në certifikatë duhet të mbulojë datën e udhëtimit të anuluar</li>
+        <li>Emri i plotë i pasagjerit dhe numri i rezervimit</li>
+      </ul>
+      <h3>Procesi:</h3>
+      <ul>
+        <li><strong>1.</strong> Anulo rezervimin nga llogaria → "Rezervimet e mia"</li>
+        <li><strong>2.</strong> Dërgo dokumentet mjekësore tek: <strong>support@albaway.ch</strong></li>
+        <li><strong>3.</strong> Ekipi ynë shqyrton kërkesën brenda <strong>7 ditësh pune</strong></li>
+        <li><strong>4.</strong> Vendimi komunikohet me email — nëse aprovohet, rimbursimi processohet brenda 5–10 ditësh pune</li>
+      </ul>
+      <p style="margin-top:12px;font-size:.82rem;color:rgba(255,255,255,.35)">Vendimi i ekipit AlbaWay mbi certifikatat mjekësore është final. AlbaWay rezervon të drejtën të refuzojë dokumente të paplotë ose të pabesueshme.</p>
     </div>
 
     <div class="legal-section">
       <h2>Anulimi nga shoferi</h2>
-      <p>Nëse shoferi anulon <strong>në çdo kohë</strong>: pasagjeri merr <strong>rimbursim të plotë 100% të çmimit + tarifën e shërbimit</strong>.</p>
-      <p style="margin-top:8px">Shoferët me 3+ anulime brenda 6 muajve pezullohen automatikisht nga platforma.</p>
-    </div>
-
-    <div class="legal-section">
-      <h2>Si bëj anulimin</h2>
-      <ul>
-        <li><strong>1.</strong> Hyr në llogarinë → "Rezervimet e mia"</li>
-        <li><strong>2.</strong> Kliko udhëtimin → "Anulo rezervimin"</li>
-        <li><strong>3.</strong> Konfirmo anulimin</li>
-        <li><strong>4.</strong> Merr emailin e konfirmimit me detajet e rimbursimit</li>
-      </ul>
+      <p>Nëse shoferi anulon <strong>në çdo kohë</strong>: pasagjeri merr <strong>rimbursim të plotë 100% të çmimit + tarifën e shërbimit 8%</strong> — automatikisht, pa nevojë për dokumentacion.</p>
+      <p style="margin-top:8px">Rimbursimi processohet brenda 5–10 ditësh pune varësisht nga banka juaj.</p>
+      <p style="margin-top:8px;font-size:.82rem;color:rgba(255,255,255,.35)">Shoferët me 3+ anulime brenda 6 muajve pezullohen automatikisht nga platforma.</p>
     </div>
   </div>
 
