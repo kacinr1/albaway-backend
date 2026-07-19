@@ -12,7 +12,7 @@ let socket = null;
 const CITY_PHOTOS = {
   'zürich':    'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=600&q=75',
   'bern':      'https://images.unsplash.com/photo-1527489377706-5bf97e608852?w=600&q=75',
-  'geneva':    'https://images.unsplash.com/photo-1584646098378-0f51eda8b3bf?w=600&q=75',
+  'geneva':    'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=75',
   'basel':     'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&q=75',
   'stuttgart': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=600&q=75',
   'münchen':   'https://images.unsplash.com/photo-1599982890963-3aabd60064d2?w=600&q=75',
