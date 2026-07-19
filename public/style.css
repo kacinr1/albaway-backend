@@ -388,6 +388,7 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
 .cd-urgent  { background:rgba(234,88,12,.9);  }
 .cd-critical{ background:rgba(220,38,38,.95); animation:cd-pulse 1s ease-in-out infinite; }
 @keyframes cd-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.tp-women{background:rgba(167,139,250,.18)!important;border-color:rgba(167,139,250,.4)!important;color:#c4b5fd!important}
 
 /* ── APP MOBILE SECTION ─────────────────────────────────────── */
 .aw-app-section{position:relative;padding:80px 20px;overflow:hidden;background:linear-gradient(180deg,#0B0D12 0%,#11141C 100%)}

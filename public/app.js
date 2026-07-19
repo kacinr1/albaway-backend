@@ -290,8 +290,8 @@ async function apiLogin(email, password) {
   toast('Mirë se erdhe, '+me.name+'! 🇦🇱','success');
   navigate('home');
 }
-async function apiRegister(name,email,password,phone) {
-  const r = await apiFetch('/register','POST',{name,email,password,phone});
+async function apiRegister(name,email,password,phone,gender) {
+  const r = await apiFetch('/register','POST',{name,email,password,phone,gender});
   token=r.token; me=r.user;
   localStorage.setItem('bbs_token',token);
   localStorage.setItem('bbs_user',JSON.stringify(me));
@@ -676,6 +676,7 @@ function bookArea(t, isOwn) {
   if (isOwn) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Ky është udhëtimi juaj.</div>
     <button onclick="navigate('dashboard')" class="btn-book" style="background:rgba(0,86,179,.5);box-shadow:none">Menaxho →</button>`;
   if (t.seats_available===0) return `<div class="book-status err">😕 Plotë — nuk ka vende</div>`;
+  if (t.women_only && me?.gender !== 'female') return `<div class="book-status" style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:14px;padding:14px;text-align:center;color:rgba(255,255,255,.7)">👩 Ky udhëtim është vetëm për udhëtare femra</div>`;
   if (!me) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Hyni për të rezervuar.</div>
     <button onclick="openModal('login')" class="btn-book">Hyr dhe Rezervo</button>`;
   return `<div class="book-seats">Dërgoni kërkesën — shoferi pranon ose refuzon.</div>
@@ -741,6 +742,7 @@ function renderPublish() {
         <h3>⚙️ Opsionet</h3>
         <div class="opt-toggle">
           ${OPTS.map(o=>`<div class="ot-item ${o.k==='luggage'||o.k==='music'||o.k==='ac'?'on':''}" id="oi-${o.k}" onclick="togOpt('${o.k}')"><span>${o.i}</span><span style="font-size:.85rem">${o.l}</span></div>`).join('')}
+          <div class="ot-item" id="oi-women" onclick="togOpt('women')" style="border-color:rgba(167,139,250,.3)"><span>👩</span><span style="font-size:.85rem">Vetëm femra</span></div>
         </div>
         <div class="form-group" style="margin-top:20px">
           <label class="form-label">Shënime shtesë</label>
@@ -771,7 +773,8 @@ async function doPublish() {
       from_city:from,to_city:to,from_point:v('p-fp'),to_point:v('p-tp'),
       date,time,seats:_curSeats,price:+price,
       vehicle:{type:_curVT,brand:v('p-brand'),model:v('p-model'),color:v('p-color')},
-      options,notes:v('p-notes')
+      options,notes:v('p-notes'),
+      women_only:document.getElementById('oi-women')?.classList.contains('on')||false
     });
     toast('✅ Udhëtimi u publikua!','success');
     navigate('trip/'+t.id);
@@ -942,6 +945,13 @@ function openModal(type) {
       <div class="form-group"><label class="form-label">Emri i plotë *</label><input class="form-input" id="rg-n" placeholder="Arben Krasniqi" autofocus/></div>
       <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="rg-e" type="email" placeholder="email@example.com"/></div>
       <div class="form-group"><label class="form-label">Telefoni</label><input class="form-input" id="rg-ph" placeholder="+41 79 ..."/></div>
+      <div class="form-group"><label class="form-label">Gjinia</label>
+        <select class="form-input" id="rg-g" style="cursor:pointer">
+          <option value="">Preferoj të mos specifikoj</option>
+          <option value="female">👩 Femër</option>
+          <option value="male">👨 Mashkull</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Fjalëkalimi *</label><input class="form-input" id="rg-p" type="password" placeholder="••••••••"/></div>
       <button class="modal-submit" onclick="doRegister()">Regjistrohu falas</button>
       <p class="modal-switch">Ke llogari? <a onclick="openModal('login')">Hyr</a></p>`);
@@ -968,9 +978,10 @@ async function doLogin() {
 }
 async function doRegister() {
   const n=document.getElementById('rg-n')?.value?.trim(), e=document.getElementById('rg-e')?.value?.trim(),
-        p=document.getElementById('rg-p')?.value, ph=document.getElementById('rg-ph')?.value?.trim();
+        p=document.getElementById('rg-p')?.value, ph=document.getElementById('rg-ph')?.value?.trim(),
+        g=document.getElementById('rg-g')?.value||'';
   if (!n||!e||!p) { toast('Plotëso fushat e detyrueshme','error'); return; }
-  try { await apiRegister(n,e,p,ph); } catch(err) { toast(err.message,'error'); }
+  try { await apiRegister(n,e,p,ph,g); } catch(err) { toast(err.message,'error'); }
 }
 
 // ─── SEARCH HELPERS ────────────────────────────────────────────────────────
@@ -1035,6 +1046,7 @@ function tripCard(t) {
         <span class="tp">📅 ${fmtDate(t.date)}</span>
         <span class="tp">🕐 ${esc(t.time)}</span>
         <span class="tp">💺 ${t.seats_available} vende</span>
+        ${t.women_only ? '<span class="tp tp-women">👩 Vetëm femra</span>' : ''}
       </div>
       <div class="tc-footer">
         <div class="tc-av" style="background:${avatarColor(t.driver?.name||'?')}">${initials_(t.driver?.name||'?')}</div>

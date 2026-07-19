@@ -183,6 +183,8 @@ async function initDb() {
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked BOOLEAN DEFAULT FALSE`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT ''`);
+  await q(`ALTER TABLE trips ADD COLUMN IF NOT EXISTS women_only BOOLEAN DEFAULT FALSE`);
   await q(`CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY,
     driver_id UUID REFERENCES users(id),
@@ -436,7 +438,7 @@ app.get('/api/ratings/:user_id', async (req, res) => {
 // ─── AUTH API ─────────────────────────────────────────────────────────────
 app.post('/api/register', authLimiter, async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, gender } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: 'Plotëso të gjitha fushat' });
 
@@ -445,11 +447,11 @@ app.post('/api/register', authLimiter, async (req, res) => {
 
     const user = {
       id: uid(), name, email, password: await hashPassword(password),
-      phone: phone || '', rating: 5.0, trips_count: 0, created_at: Date.now()
+      phone: phone || '', gender: gender || '', rating: 5.0, trips_count: 0, created_at: Date.now()
     };
     await q(
-      'INSERT INTO users (id,name,email,password,phone,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-      [user.id, user.name, user.email, user.password, user.phone, user.rating, user.trips_count, user.created_at]
+      'INSERT INTO users (id,name,email,password,phone,gender,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [user.id, user.name, user.email, user.password, user.phone, user.gender, user.rating, user.trips_count, user.created_at]
     );
     const token = createToken(user.id);
     const { password: _, ...safe } = user;
@@ -616,7 +618,7 @@ app.get('/api/trips/:id', async (req, res) => {
 
 app.post('/api/trips', auth, async (req, res) => {
   try {
-    const { from_city, to_city, from_point, to_point, date, time, seats, price, vehicle, options, notes } = req.body;
+    const { from_city, to_city, from_point, to_point, date, time, seats, price, vehicle, options, notes, women_only } = req.body;
     if (!from_city || !to_city || !date || !time || !seats || !price)
       return res.status(400).json({ error: 'Plotëso të gjitha fushat e detyrueshme' });
 
@@ -629,11 +631,11 @@ app.post('/api/trips', auth, async (req, res) => {
       seats: +seats, seats_available: +seats,
       price: +price,
       vehicle: vehicle || {}, options: options || {},
-      notes: notes || '', status: 'active', created_at: Date.now()
+      notes: notes || '', women_only: !!women_only, status: 'active', created_at: Date.now()
     };
     await q(
-      'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)',
-      [trip.id, trip.driver_id, trip.from_city, trip.to_city, trip.from_point, trip.to_point, trip.date, trip.time, trip.seats, trip.seats_available, trip.price, JSON.stringify(trip.vehicle), JSON.stringify(trip.options), trip.notes, trip.status, trip.created_at]
+      'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,women_only,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)',
+      [trip.id, trip.driver_id, trip.from_city, trip.to_city, trip.from_point, trip.to_point, trip.date, trip.time, trip.seats, trip.seats_available, trip.price, JSON.stringify(trip.vehicle), JSON.stringify(trip.options), trip.notes, trip.women_only, trip.status, trip.created_at]
     );
     await q('UPDATE users SET trips_count = trips_count + 1 WHERE id=$1', [req.user.id]);
     res.json(trip);
@@ -721,6 +723,8 @@ app.post('/api/bookings', auth, async (req, res) => {
       [trip_id, req.user.id]
     );
     if (dup.length) return res.status(400).json({ error: 'Ke tashmë një rezervim aktiv' });
+    if (trip.women_only && req.user.gender !== 'female')
+      return res.status(403).json({ error: '👩 Ky udhëtim është vetëm për udhëtare femra' });
 
     const booking = {
       id: uid(), trip_id, passenger_id: req.user.id,
