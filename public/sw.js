@@ -1,5 +1,5 @@
-/* AlbaWay PWA — Service Worker v1 */
-const CACHE = 'albaway-v1';
+/* AlbaWay PWA — Service Worker v2 */
+const CACHE = 'albaway-v2';
 const SHELL = ['/app', '/manifest.json', '/logo.svg', '/favicon.svg'];
 
 self.addEventListener('install', e => {
@@ -18,10 +18,22 @@ self.addEventListener('fetch', e => {
 
   // Jamais de cache pour l'API, Stripe, Socket.io → toujours réseau
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/') || e.request.method !== 'GET') {
-    return; // laisse passer au réseau
+    return;
   }
 
-  // Shell + assets : network-first, fallback cache (offline)
+  // JS/CSS/HTML critiques → toujours réseau, pas de fallback obsolète
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname === '/' || url.pathname === '/app') {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Autres assets (images, fonts) → network-first, fallback cache
   e.respondWith(
     fetch(e.request)
       .then(res => {
@@ -29,6 +41,6 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, copy));
         return res;
       })
-      .catch(() => caches.match(e.request).then(m => m || caches.match('/app')))
+      .catch(() => caches.match(e.request))
   );
 });
