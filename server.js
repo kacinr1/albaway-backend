@@ -61,8 +61,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src":  ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://js.stripe.com", "https://fonts.googleapis.com"],
-      "style-src":   ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+      "script-src":      ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://js.stripe.com", "https://fonts.googleapis.com"],
+      "script-src-attr": ["'unsafe-inline'"],
+      "style-src":       ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       "font-src":    ["'self'", "https://fonts.gstatic.com"],
       "img-src":     ["'self'", "data:", "https://images.unsplash.com", "https://*.basemaps.cartocdn.com"],
       "connect-src": ["'self'", "wss://albaway.ch", "https://albaway.ch", "https://api.stripe.com"],
