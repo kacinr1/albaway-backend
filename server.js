@@ -143,6 +143,28 @@ async function sendResetEmail(email, name, token) {
   else        console.log('[EMAIL] ✅ Envoyé à', email, '— id:', data.id);
 }
 
+async function sendEmail(to, subject, html) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({ from:'AlbaWay <noreply@albaway.ch>', to, subject, html });
+    if (error) console.error('[EMAIL] ❌', subject, error.message);
+    else        console.log('[EMAIL] ✅', subject, '→', to);
+  } catch(e) { console.error('[EMAIL] ❌', e.message); }
+}
+
+function emailWrap(body) {
+  return `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#fff;border-radius:16px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:2rem">🇦🇱</div>
+      <h1 style="color:#E41E20;margin:6px 0;font-size:1.5rem">AlbaWay</h1>
+    </div>
+    ${body}
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:24px 0"/>
+    <p style="color:rgba(255,255,255,.2);font-size:.75rem;text-align:center">AlbaWay · Bashkudhëtim shqiptar 🇦🇱</p>
+  </div>`;
+}
+
 // ─── INIT DB ──────────────────────────────────────────────────────────────
 async function initDb() {
   await q(`CREATE TABLE IF NOT EXISTS users (
@@ -431,6 +453,12 @@ app.post('/api/register', authLimiter, async (req, res) => {
     );
     const token = createToken(user.id);
     const { password: _, ...safe } = user;
+    sendEmail(user.email, 'Mirë se erdhët në AlbaWay 🇦🇱', emailWrap(`
+      <p>Mirëdita <strong>${user.name}</strong>,</p>
+      <p style="color:rgba(255,255,255,.7)">Llogaria juaj u krijua me sukses! Tani mund të kërkoni ose publikoni udhëtime.</p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">🔍 Kërko udhëtim</a>
+      </div>`));
     res.json({ token, user: safe });
   } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
 });
@@ -622,6 +650,15 @@ app.patch('/api/trips/:id/cancel', auth, async (req, res) => {
     for (const b of pending) {
       await q("UPDATE bookings SET status='cancelled' WHERE id=$1", [b.id]);
       notify(b.passenger_id, 'booking_update', { booking_id: b.id, status: 'cancelled' });
+      q('SELECT email,name FROM users WHERE id=$1', [b.passenger_id]).then(r => {
+        const pax = r.rows[0];
+        if (pax?.email) sendEmail(pax.email, `Udhëtimi u anulua ❌ — ${trip.from_city} → ${trip.to_city}`, emailWrap(`
+          <p>Mirëdita <strong>${pax.name}</strong>,</p>
+          <p style="color:rgba(255,255,255,.7)">Fatkeqësisht, udhëtimi <strong>${trip.from_city} → ${trip.to_city}</strong> i datës <strong>${trip.date}</strong> u anulua nga shoferi. Rezervimi juaj u anulua automatikisht.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">🔍 Kërko udhëtim tjetër</a>
+          </div>`));
+      }).catch(() => {});
     }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -700,6 +737,15 @@ app.post('/api/bookings', auth, async (req, res) => {
       route: `${trip.from_city} → ${trip.to_city}`,
       date: trip.date
     });
+    q('SELECT email,name FROM users WHERE id=$1', [trip.driver_id]).then(r => {
+      const drv = r.rows[0];
+      if (drv?.email) sendEmail(drv.email, `Kërkesë e re rezervimi — ${trip.from_city} → ${trip.to_city}`, emailWrap(`
+        <p>Mirëdita <strong>${drv.name}</strong>,</p>
+        <p style="color:rgba(255,255,255,.7)"><strong>${req.user.name}</strong> dëshiron të rezervojë <strong>${want} vend(e)</strong> për rrugën <strong>${trip.from_city} → ${trip.to_city}</strong> më datën <strong>${trip.date}</strong>.</p>
+        <div style="text-align:center;margin:28px 0">
+          <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">✅ Prano ose Refuzo</a>
+        </div>`));
+    }).catch(() => {});
     res.json(booking);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -727,6 +773,18 @@ app.put('/api/bookings/:id', auth, async (req, res) => {
       date: trip.date, time: trip.time,
       driver_name: req.user.name
     });
+    if (status === 'accepted') {
+      q('SELECT email,name FROM users WHERE id=$1', [b.passenger_id]).then(r => {
+        const pax = r.rows[0];
+        if (pax?.email) sendEmail(pax.email, `Rezervimi u pranua ✅ — ${trip.from_city} → ${trip.to_city}`, emailWrap(`
+          <p>Mirëdita <strong>${pax.name}</strong>,</p>
+          <p style="color:rgba(255,255,255,.7)">Shoferi <strong>${req.user.name}</strong> pranoi rezervimin tuaj për rrugën <strong>${trip.from_city} → ${trip.to_city}</strong> më datën <strong>${trip.date}</strong> ora <strong>${trip.time}</strong>.</p>
+          <p style="color:rgba(255,255,255,.7)">Hyni në AlbaWay dhe klikoni <strong>"Paguaj"</strong> për të konfirmuar vendin tuaj.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">💳 Paguaj tani</a>
+          </div>`));
+      }).catch(() => {});
+    }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -799,6 +857,23 @@ app.post('/api/stripe/webhook', async (req, res) => {
           booking_id: b.id,
           route: trip ? `${trip.from_city} → ${trip.to_city}` : ''
         });
+        // Emails paiement confirmé
+        const route = trip ? `${trip.from_city} → ${trip.to_city}` : '';
+        const { rows: [driver] } = await q('SELECT * FROM users WHERE id=$1', [trip?.driver_id]);
+        if (passenger?.email) sendEmail(passenger.email, `Pagesa u konfirmua 💳 — ${route}`, emailWrap(`
+          <p>Mirëdita <strong>${passenger.name}</strong>,</p>
+          <p style="color:rgba(255,255,255,.7)">Pagesa juaj u konfirmua për rrugën <strong>${route}</strong> më datën <strong>${trip?.date}</strong>.</p>
+          ${driver ? `<p style="color:rgba(255,255,255,.7)">Kontakti i shoferit: <strong>${driver.name}</strong>${driver.phone ? ` · 📞 ${driver.phone}` : ''}</p>` : ''}
+          <div style="text-align:center;margin:28px 0">
+            <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">💬 Hap chatin</a>
+          </div>`));
+        if (driver?.email) sendEmail(driver.email, `Pagesa u krye nga ${passenger?.name || 'pasagjeri'} 💰`, emailWrap(`
+          <p>Mirëdita <strong>${driver.name}</strong>,</p>
+          <p style="color:rgba(255,255,255,.7)"><strong>${passenger?.name || 'Pasagjeri'}</strong> kreu pagesën për rrugën <strong>${route}</strong> më datën <strong>${trip?.date}</strong>.</p>
+          ${passenger?.phone ? `<p style="color:rgba(255,255,255,.7)">Kontakti i pasagjerit: 📞 <strong>${passenger.phone}</strong></p>` : ''}
+          <div style="text-align:center;margin:28px 0">
+            <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">💬 Hap chatin</a>
+          </div>`));
       }
     }
   }

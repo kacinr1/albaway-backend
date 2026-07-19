@@ -388,6 +388,75 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
 .cd-urgent  { background:rgba(234,88,12,.9);  }
 .cd-critical{ background:rgba(220,38,38,.95); animation:cd-pulse 1s ease-in-out infinite; }
 @keyframes cd-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── APP MOBILE SECTION ─────────────────────────────────────── */
+.aw-app-section{position:relative;padding:80px 20px;overflow:hidden;background:linear-gradient(180deg,#0B0D12 0%,#11141C 100%)}
+.aw-app-section::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(600px 400px at 85% 20%,rgba(218,41,28,.18),transparent 60%),radial-gradient(500px 500px at 15% 90%,rgba(60,90,220,.10),transparent 60%)}
+.aw-app-wrap{max-width:1180px;margin:0 auto;position:relative;z-index:2;display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center}
+@media(max-width:900px){.aw-app-wrap{grid-template-columns:1fr;gap:40px;text-align:center}.aw-app-section{padding:60px 18px}}
+.aw-app-badge{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#FF9C94;letter-spacing:.06em;background:rgba(218,41,28,.15);border:1px solid rgba(218,41,28,.35);padding:7px 14px;border-radius:999px;margin-bottom:18px;text-transform:uppercase}
+.aw-app-badge i{width:8px;height:8px;border-radius:50%;background:#DA291C;animation:awPulse 1.4s ease infinite}
+@keyframes awPulse{50%{opacity:.35;transform:scale(.75)}}
+.aw-app-title{font-family:'Space Grotesk',system-ui,sans-serif;font-size:clamp(30px,4.5vw,46px);font-weight:800;letter-spacing:-.02em;color:#F2F3F7;line-height:1.1;margin-bottom:16px}
+.aw-app-title span{color:#DA291C}
+.aw-app-sub{font-size:16px;color:#9BA1B0;max-width:520px;margin-bottom:26px;line-height:1.6}
+@media(max-width:900px){.aw-app-sub{margin-left:auto;margin-right:auto}}
+.aw-app-features{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:30px;max-width:520px}
+@media(max-width:900px){.aw-app-features{margin-left:auto;margin-right:auto}}
+@media(max-width:480px){.aw-app-features{grid-template-columns:1fr}}
+.aw-app-feat{display:flex;align-items:center;gap:11px;padding:12px 14px;text-align:left;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);border-radius:14px;backdrop-filter:blur(14px)}
+.aw-app-feat .em{font-size:22px;line-height:1;flex:none}
+.aw-app-feat b{font-size:13.5px;font-weight:600;color:#F2F3F7;display:block;line-height:1.2}
+.aw-app-feat span{font-size:12px;color:#9BA1B0}
+.aw-app-cta{display:flex;flex-wrap:wrap;gap:12px}
+@media(max-width:900px){.aw-app-cta{justify-content:center}}
+.aw-app-btn{display:inline-flex;align-items:center;gap:11px;text-decoration:none;padding:14px 22px;border-radius:15px;font-weight:600;font-size:15px;transition:transform .15s,box-shadow .15s;font-family:inherit}
+.aw-app-btn.primary{background:linear-gradient(135deg,#E6362A,#B31A0F);color:#fff;box-shadow:0 8px 26px rgba(218,41,28,.36)}
+.aw-app-btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(218,41,28,.5)}
+.aw-app-btn.ghost{background:rgba(255,255,255,.09);color:#F2F3F7;border:1px solid rgba(255,255,255,.15)}
+.aw-app-btn.ghost:hover{background:rgba(255,255,255,.14)}
+.aw-app-btn .ic{font-size:19px;line-height:1}
+.aw-app-stores{display:flex;gap:14px;margin-top:20px;font-size:12.5px;color:#9BA1B0;flex-wrap:wrap}
+@media(max-width:900px){.aw-app-stores{justify-content:center}}
+.aw-app-stores span{display:inline-flex;align-items:center;gap:6px}
+.aw-phone-wrap{position:relative;display:flex;justify-content:center;align-items:center;perspective:1000px}
+.aw-phone{width:270px;height:540px;border-radius:44px;position:relative;background:linear-gradient(160deg,#1C202B,#0B0D12);border:2px solid rgba(255,255,255,.12);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 6px #0f1116,inset 0 1px 0 rgba(255,255,255,.08);transform:rotate(-6deg);transition:transform .4s ease}
+.aw-phone:hover{transform:rotate(-3deg) scale(1.02)}
+.aw-phone::before{content:"";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:100px;height:26px;background:#0B0D12;border-radius:14px;z-index:5}
+.aw-phone-screen{position:absolute;inset:10px;border-radius:36px;overflow:hidden;background:linear-gradient(180deg,#0B0D12,#171A23);padding:40px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.aw-phone-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.aw-phone-brand{display:flex;align-items:center;gap:7px}
+.aw-phone-brand .eagle-mini{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#DA291C,#8E120B);font-size:13px}
+.aw-phone-brand b{font-family:'Space Grotesk',sans-serif;font-size:14px;color:#F2F3F7}
+.aw-phone-brand b span{color:#DA291C}
+.aw-phone-hello{font-size:13px;color:#9BA1B0;margin-bottom:4px}
+.aw-phone-hello b{color:#F2F3F7;display:block;font-size:16px;font-family:'Space Grotesk',sans-serif}
+.aw-phone-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px}
+.aw-phone-route{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.aw-phone-route .c{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12.5px;color:#F2F3F7;white-space:nowrap}
+.aw-phone-route .l{flex:1;height:2px;background:repeating-linear-gradient(90deg,#DA291C 0 5px,transparent 5px 10px);animation:awDash 1.6s linear infinite;background-size:200% 100%;position:relative}
+@keyframes awDash{to{background-position:-20px 0}}
+.aw-phone-route .l::before,.aw-phone-route .l::after{content:"";position:absolute;top:50%;width:6px;height:6px;border-radius:50%;transform:translateY(-50%)}
+.aw-phone-route .l::before{left:-2px;background:#F2F3F7}
+.aw-phone-route .l::after{right:-2px;background:#DA291C}
+.aw-phone-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.aw-phone-chip{font-size:9.5px;font-weight:500;color:#9BA1B0;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.aw-phone-foot{display:flex;justify-content:space-between;align-items:center}
+.aw-phone-driver{display:flex;align-items:center;gap:6px}
+.aw-phone-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#2A2F3C,#171A23);border:1px solid rgba(255,255,255,.15);display:grid;place-items:center;font-size:9.5px;font-weight:600;color:#F2F3F7}
+.aw-phone-driver .nm{font-size:10.5px;font-weight:600;color:#F2F3F7;line-height:1}
+.aw-phone-driver .st{font-size:9px;color:#F5B942}
+.aw-phone-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#DA291C}
+.aw-phone-tabbar{position:absolute;bottom:16px;left:14px;right:14px;background:rgba(17,20,28,.9);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:7px;display:flex;justify-content:space-around;backdrop-filter:blur(10px)}
+.aw-phone-tab{font-size:14px;padding:6px;opacity:.5}
+.aw-phone-tab.on{opacity:1;filter:drop-shadow(0 0 6px rgba(218,41,28,.7))}
+.aw-float{position:absolute;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px);border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:9px;font-size:12px;color:#F2F3F7;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.35);animation:awFloat 4s ease-in-out infinite}
+@keyframes awFloat{50%{transform:translateY(-8px)}}
+.aw-float-1{top:12%;right:-6%;animation-delay:0s}
+.aw-float-2{bottom:18%;left:-8%;animation-delay:1.5s}
+.aw-float .em{font-size:16px}
+.aw-float b{color:#3DDC84}
+@media(max-width:900px){.aw-float-1,.aw-float-2{display:none}}
 .tc-body{padding:18px}
 .tc-route{
   font-family:'Space Grotesk',sans-serif;

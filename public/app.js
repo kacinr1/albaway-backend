@@ -423,6 +423,67 @@ async function renderHome() {
       </div>
     </div>
 
+    <section class="aw-app-section reveal" id="app-section">
+      <div class="aw-app-wrap">
+        <div>
+          <div class="aw-app-badge"><i></i> Aplikacioni Mobile · New</div>
+          <h2 class="aw-app-title">L'app <span>AlbaWay</span><br>në xhepin tënd 📱</h2>
+          <p class="aw-app-sub">Rezervo, bisedo dhe ndiq udhëtimin në kohë reale — nga telefoni yt. Instalim në 30 sekonda, pa App Store.</p>
+          <div class="aw-app-features">
+            <div class="aw-app-feat"><span class="em">🚗</span><div><b>Ndjekje Live GPS</b><span>Makina në kohë reale</span></div></div>
+            <div class="aw-app-feat"><span class="em">💬</span><div><b>Chat i menjëhershëm</b><span>Me shoferinçt</span></div></div>
+            <div class="aw-app-feat"><span class="em">🔒</span><div><b>Pagesa Stripe</b><span>E sigurt & e shpejtë</span></div></div>
+            <div class="aw-app-feat"><span class="em">🌍</span><div><b>4 gjuhë</b><span>SQ · FR · DE · EN</span></div></div>
+          </div>
+          <div class="aw-app-cta">
+            <a href="/app" class="aw-app-btn primary"><span class="ic">🚀</span> Hap aplikacionin</a>
+            <a href="/faq.html" class="aw-app-btn ghost"><span class="ic">📥</span> Si ta instaloj</a>
+          </div>
+          <div class="aw-app-stores">
+            <span>🍎 iPhone & iPad</span>
+            <span>🤖 Android</span>
+            <span>💻 Web</span>
+            <span>⚡ Instalim i menjëhershëm</span>
+          </div>
+        </div>
+        <div class="aw-phone-wrap">
+          <div class="aw-float aw-float-1"><span class="em">📡</span> <b>LIVE</b> · Zürich → Prishtinë</div>
+          <div class="aw-float aw-float-2"><span class="em">⭐</span> 4.9 · Arben K.</div>
+          <div class="aw-phone">
+            <div class="aw-phone-screen">
+              <div class="aw-phone-topbar">
+                <div class="aw-phone-brand"><div class="eagle-mini">🦅</div><b>Alba<span>Way</span></b></div>
+              </div>
+              <div class="aw-phone-hello">Mirëdita 👋<b>Ku po udhëton?</b></div>
+              <div class="aw-phone-card">
+                <div class="aw-phone-route"><span class="c">Zürich</span><span class="l"></span><span class="c">Prishtinë</span></div>
+                <div class="aw-phone-meta"><span class="aw-phone-chip">📅 24 korrik</span><span class="aw-phone-chip">💺 3</span></div>
+                <div class="aw-phone-foot">
+                  <div class="aw-phone-driver"><div class="aw-phone-avatar">AK</div><div><div class="nm">Arben K.</div><div class="st">★ 4.9</div></div></div>
+                  <div class="aw-phone-price">80€</div>
+                </div>
+              </div>
+              <div class="aw-phone-card">
+                <div class="aw-phone-route"><span class="c">Stuttgart</span><span class="l"></span><span class="c">Tetovë</span></div>
+                <div class="aw-phone-meta"><span class="aw-phone-chip">📅 25 korrik</span><span class="aw-phone-chip">💺 2</span></div>
+                <div class="aw-phone-foot">
+                  <div class="aw-phone-driver"><div class="aw-phone-avatar">BM</div><div><div class="nm">Blerina M.</div><div class="st">★ 4.8</div></div></div>
+                  <div class="aw-phone-price">75€</div>
+                </div>
+              </div>
+              <div class="aw-phone-tabbar">
+                <span class="aw-phone-tab on">🔍</span>
+                <span class="aw-phone-tab">🎫</span>
+                <span class="aw-phone-tab">🚗</span>
+                <span class="aw-phone-tab">💬</span>
+                <span class="aw-phone-tab">👤</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="section-wrap" style="text-align:center">
       <div class="reveal" style="background:linear-gradient(135deg,rgba(0,61,130,.35),rgba(228,30,32,.15));border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:72px 32px;position:relative;overflow:hidden">
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:180px;opacity:.04;pointer-events:none">🇦🇱</div>
