@@ -48,12 +48,17 @@ function initCursor() {
     requestAnimationFrame(loop);
   })();
   document.addEventListener('mouseover', e => {
-    if (e.target.matches('button,a,[onclick],.tc,.bk-card,.my-tc,.tlc,.bc,.req-card')) {
-      cur.style.transform += ' scale(2.5)';
+    if (e.target.matches('button,a,.tc,.bk-card,.my-tc,.tlc,.bc,.req-card,.ac-item')) {
+      cur.style.transform = `translate(${_mx-5}px,${_my-5}px) scale(2.5)`;
       tr.style.opacity = '.4';
     }
   });
-  document.addEventListener('mouseout', () => { tr.style.opacity = '1'; });
+  document.addEventListener('mouseout', e => {
+    if (e.target.matches('button,a,.tc,.bk-card,.my-tc,.tlc,.bc,.req-card,.ac-item')) {
+      cur.style.transform = `translate(${_mx-5}px,${_my-5}px)`;
+      tr.style.opacity = '1';
+    }
+  });
 }
 
 // ─── GSAP INIT ─────────────────────────────────────────────────────────────
@@ -226,7 +231,8 @@ function pushNotif(title, body) {
 
 // ─── SOCKET ────────────────────────────────────────────────────────────────
 function initSocket() {
-  socket = io();
+  if (typeof io === 'undefined') return;
+  try { socket = io(); } catch(e) { return; }
   socket.on('connect', () => { if (me && token) socket.emit('identify', { id: me.id, token }); });
   socket.on('new_request', d => {
     showNotif('new_request','🔔 Kërkesë e re!',`${d.passenger.name} → ${d.route}`);
@@ -1016,22 +1022,29 @@ function attachAutocomplete(inputId) {
   drop.className = 'ac-drop'; drop.id = 'acd-'+inputId;
   wrap.appendChild(drop);
 
-  input.addEventListener('input', () => {
-    const m = cityMatch(input.value);
+  function renderItems(m) {
     drop.innerHTML = m.length && input.value
-      ? m.map(c=>`<div class="ac-item" onmousedown="pickCity('${inputId}','${esc(c)}')">${c}</div>`).join('')
+      ? m.map(c => `<div class="ac-item">${esc(c)}</div>`).join('')
       : '';
-  });
+    drop.querySelectorAll('.ac-item').forEach(item => {
+      item.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        pickCity(inputId, item.textContent.trim());
+      });
+    });
+  }
+
+  input.addEventListener('input', () => renderItems(cityMatch(input.value)));
   input.addEventListener('keydown', e => {
     const items = [...drop.querySelectorAll('.ac-item')];
     const sel   = drop.querySelector('.ac-sel');
     const idx   = items.indexOf(sel);
     if (e.key==='ArrowDown'){ e.preventDefault(); items.forEach(i=>i.classList.remove('ac-sel')); (items[idx+1]||items[0])?.classList.add('ac-sel'); }
     if (e.key==='ArrowUp')  { e.preventDefault(); items.forEach(i=>i.classList.remove('ac-sel')); (items[idx-1]||items[items.length-1])?.classList.add('ac-sel'); }
-    if (e.key==='Enter' && sel){ pickCity(inputId, sel.textContent); e.preventDefault(); }
+    if (e.key==='Enter' && sel){ pickCity(inputId, sel.textContent.trim()); e.preventDefault(); }
     if (e.key==='Escape') drop.innerHTML='';
   });
-  input.addEventListener('blur', ()=>setTimeout(()=>{drop.innerHTML='';},160));
+  input.addEventListener('blur', () => setTimeout(() => { drop.innerHTML = ''; }, 250));
 }
 
 function pickCity(inputId, city) {

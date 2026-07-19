@@ -539,9 +539,15 @@ function bindAC(inputId,listId){
     const m=CITIES.filter(c=>c.toLowerCase().includes(v)).slice(0,6);
     list.innerHTML=m.map(c=>`<button type="button">${c}</button>`).join('');
     list.classList.toggle('open',m.length>0);
-    list.querySelectorAll('button').forEach(b=>b.onclick=()=>{inp.value=b.textContent.replace(/ [\u{1F1E6}-\u{1F1FF}]{2}$/u,'').trim();list.classList.remove('open');});
+    list.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('pointerdown',e=>{
+        e.preventDefault();
+        inp.value=b.textContent.replace(/ [\u{1F1E6}-\u{1F1FF}]{2}$/u,'').trim();
+        list.classList.remove('open');
+      });
+    });
   });
-  inp.addEventListener('blur',()=>setTimeout(()=>list.classList.remove('open'),180));
+  inp.addEventListener('blur',()=>setTimeout(()=>list.classList.remove('open'),250));
 }
 bindAC('q-from','ac-from');bindAC('q-to','ac-to');
 document.getElementById('btn-swap').onclick=()=>{const a=document.getElementById('q-from'),b=document.getElementById('q-to');[a.value,b.value]=[b.value,a.value];};

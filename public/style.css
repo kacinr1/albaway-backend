@@ -2,7 +2,7 @@
    AlbaWay — Ultra Design 2026
    Dark · Glassmorphism · Aurora · GSAP
 ═══════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 
 :root{
   --blue:#003D82;--blue2:#0056b3;--red:#E41E20;--red2:#ff4444;
@@ -819,6 +819,14 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
 }
 .lang-drop button:hover{background:rgba(228,30,32,.2);color:#fff}
 
+/* ── TOUCH-FRIENDLY INTERACTIVE ELEMENTS ───────────────── */
+.tc,.tlc,.bk-card,.my-tc,.bc,.req-card,
+.btn-book,.btn-publish,.btn-see-all,.search-go,
+.btn-nav-ghost,.btn-nav-red,.btn-accept,.btn-refuse,.btn-manage,.btn-cancel-t,
+.tab-btn,.seat-btn,.ot-item,.lang-btn{
+  touch-action:manipulation;
+}
+
 /* ── AUTOCOMPLETE ──────────────────────────────────────── */
 .ac-wrap{position:relative}
 .ac-drop{
@@ -826,14 +834,16 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
   background:#141929;
   border:1px solid rgba(255,255,255,.12);
   border-radius:12px;overflow:hidden;
-  z-index:500;
+  z-index:9000;
   box-shadow:0 12px 40px rgba(0,0,0,.6);
 }
 .ac-item{
-  padding:10px 16px;font-size:.9rem;
+  padding:12px 16px;font-size:.9rem;
   cursor:pointer;transition:background .12s;
   display:flex;align-items:center;gap:8px;
   color:rgba(255,255,255,.85);
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
 }
 .ac-item:hover,.ac-item.ac-sel{
   background:rgba(228,30,32,.2);color:#fff;

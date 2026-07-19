@@ -55,15 +55,15 @@
 <!-- HEADER -->
 <header id="header">
   <div class="nav-inner">
-    <a class="logo" onclick="navigate('home')" href="#">
+    <a class="logo" onclick="navigate('home');return false" href="#">
       <img class="logo-img" src="/logo.svg" alt="AlbaWay"/>
       <span class="logo-text">Alba<strong>Way</strong></span>
     </a>
     <nav class="nav-links" id="nav-links">
-      <a onclick="navigate('search')" href="#">Kërko udhëtim</a>
+      <a onclick="navigate('search');return false" href="#">Kërko udhëtim</a>
       <a href="/about.html">Rreth nesh</a>
       <a href="/faq.html">FAQ</a>
-      <a onclick="navigate('publish')" href="#" class="nav-publish">+ Publiko</a>
+      <a onclick="navigate('publish');return false" href="#" class="nav-publish">+ Publiko</a>
     </nav>
     <div class="nav-right">
       <div id="auth-buttons">
@@ -97,9 +97,9 @@
 
 <!-- MOBILE NAV -->
 <div class="mobile-nav hidden" id="mobile-nav">
-  <a onclick="navigate('search');toggleMobileNav()" href="#">🔍 Kërko udhëtim</a>
-  <a onclick="navigate('publish');toggleMobileNav()" href="#">🚗 Publiko udhëtim</a>
-  <a onclick="navigate('dashboard');toggleMobileNav()" href="#">👤 Profili im</a>
+  <a onclick="navigate('search');toggleMobileNav();return false" href="#">🔍 Kërko udhëtim</a>
+  <a onclick="navigate('publish');toggleMobileNav();return false" href="#">🚗 Publiko udhëtim</a>
+  <a onclick="navigate('dashboard');toggleMobileNav();return false" href="#">👤 Profili im</a>
   <div class="mobile-auth" id="mobile-auth">
     <button onclick="openModal('login');toggleMobileNav()">Hyr</button>
     <button onclick="openModal('register');toggleMobileNav()">Regjistrohu</button>
@@ -126,11 +126,11 @@
     </div>
     <div class="footer-links">
       <h4>Destinacionet</h4>
-      <a href="#" onclick="quickSearch('Zürich','Prishtinë')">🇨🇭 Zürich → Prishtinë</a>
-      <a href="#" onclick="quickSearch('Stuttgart','Tirana')">🇩🇪 Stuttgart → Tirana</a>
-      <a href="#" onclick="quickSearch('Wien','Shkodër')">🇦🇹 Wien → Shkodër</a>
-      <a href="#" onclick="quickSearch('München','Shkup')">🇩🇪 München → Shkup</a>
-      <a href="#" onclick="quickSearch('London','Prishtinë')">🇬🇧 London → Prishtinë</a>
+      <a href="#" onclick="quickSearch('Zürich','Prishtinë');return false">🇨🇭 Zürich → Prishtinë</a>
+      <a href="#" onclick="quickSearch('Stuttgart','Tirana');return false">🇩🇪 Stuttgart → Tirana</a>
+      <a href="#" onclick="quickSearch('Wien','Shkodër');return false">🇦🇹 Wien → Shkodër</a>
+      <a href="#" onclick="quickSearch('München','Shkup');return false">🇩🇪 München → Shkup</a>
+      <a href="#" onclick="quickSearch('London','Prishtinë');return false">🇬🇧 London → Prishtinë</a>
     </div>
   </div>
   <div class="footer-bottom">
