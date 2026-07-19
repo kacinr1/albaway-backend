@@ -611,6 +611,7 @@ async function renderTripDetail(id) {
                 <div class="tl-labels">
                   <div><div class="tl-city">${esc(t.time)} — ${esc(t.from_city)}</div><div class="tl-point">${esc(t.from_point)}</div></div>
                   <div class="tl-date-badge">📅 ${fmtDate(t.date)}</div>
+              ${t.women_only ? `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.35);color:#c4b5fd;font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:999px;margin-top:8px">👩 Vetëm femra</div>` : ''}
                   <div><div class="tl-city">${esc(t.to_city)}</div><div class="tl-point">${esc(t.to_point)}</div></div>
                 </div>
               </div>
@@ -676,9 +677,9 @@ function bookArea(t, isOwn) {
   if (isOwn) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Ky është udhëtimi juaj.</div>
     <button onclick="navigate('dashboard')" class="btn-book" style="background:rgba(0,86,179,.5);box-shadow:none">Menaxho →</button>`;
   if (t.seats_available===0) return `<div class="book-status err">😕 Plotë — nuk ka vende</div>`;
-  if (t.women_only && me?.gender !== 'female') return `<div class="book-status" style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:14px;padding:14px;text-align:center;color:rgba(255,255,255,.7)">👩 Ky udhëtim është vetëm për udhëtare femra</div>`;
   if (!me) return `<div style="text-align:center;margin-bottom:12px;color:rgba(255,255,255,.4);font-size:.875rem">Hyni për të rezervuar.</div>
     <button onclick="openModal('login')" class="btn-book">Hyr dhe Rezervo</button>`;
+  if (t.women_only && me.gender !== 'female') return `<div class="book-status" style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:14px;padding:14px;text-align:center;color:rgba(255,255,255,.7)">👩 Ky udhëtim është vetëm për udhëtare femra</div>`;
   return `<div class="book-seats">Dërgoni kërkesën — shoferi pranon ose refuzon.</div>
     <textarea class="book-ta" id="book-msg" placeholder="Mesazh opsional..."></textarea>
     <button class="btn-book" onclick="doBook('${t.id}')">✋ Kërko vendin — ${t.price}€</button>`;
