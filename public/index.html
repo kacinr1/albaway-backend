@@ -63,6 +63,7 @@
       <a onclick="navigate('search');return false" href="#">Kërko udhëtim</a>
       <a href="/about.html">Rreth nesh</a>
       <a href="/faq.html">FAQ</a>
+      <a href="/app" class="nav-app" style="position:relative">📱 App<span style="position:absolute;top:-8px;right:-16px;background:#DA291C;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;line-height:1.4">NEW</span></a>
       <a onclick="navigate('publish');return false" href="#" class="nav-publish">+ Publiko</a>
     </nav>
     <div class="nav-right">
@@ -98,6 +99,7 @@
 <!-- MOBILE NAV -->
 <div class="mobile-nav hidden" id="mobile-nav">
   <a onclick="navigate('search');toggleMobileNav();return false" href="#">🔍 Kërko udhëtim</a>
+  <a href="/app" onclick="toggleMobileNav()">📱 App <span style="background:#DA291C;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">NEW</span></a>
   <a onclick="navigate('publish');toggleMobileNav();return false" href="#">🚗 Publiko udhëtim</a>
   <a onclick="navigate('dashboard');toggleMobileNav();return false" href="#">👤 Profili im</a>
   <div class="mobile-auth" id="mobile-auth">
