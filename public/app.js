@@ -399,19 +399,26 @@ async function renderHome() {
     </div>
 
     <div class="section-wrap">
-      <div class="reveal" style="text-align:center;margin-bottom:32px">
+      <div class="reveal" style="text-align:center;margin-bottom:40px">
         <div class="section-tag">Rrugët tona</div>
         <div class="section-h">Europa drejt Shqipërisë</div>
+        <p style="color:var(--muted);margin-top:10px;font-size:.95rem">Rrugët kryesore të diasporës shqiptare</p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;margin:0 auto">
-        ${[['🇨🇭','Zürich / Bern / Geneva → Prishtinë','Zürich','Prishtinë','70-90€'],
-           ['🇩🇪','Stuttgart / München → Tirana','Stuttgart','Tirana','60-80€'],
-           ['🇦🇹','Wien → Shkodër / Durrës','Wien','Shkodër','55-70€'],
-           ['🇬🇧','London → Prishtinë','London','Prishtinë','120-150€']].map(([f,name,from,to,price])=>`
-          <div class="tlc reveal" onclick="quickSearch('${from}','${to}')" style="grid-template-columns:auto 1fr auto;cursor:none">
-            <span style="font-size:1.4rem">${f}</span>
-            <div><div style="font-weight:700;font-size:.95rem">${name}</div></div>
-            <span class="badge badge-accepted">${price}</span>
+      <div class="dest-grid">
+        ${[
+          {photo:'Geneva',   flag:'🇨🇭', from:'Genève · Zürich · Bern', to:'Prishtinë',       price:'70-90€', qs:['Zürich','Prishtinë']},
+          {photo:'München',  flag:'🇩🇪', from:'Stuttgart · München',     to:'Tiranë',           price:'60-80€', qs:['Stuttgart','Tirana']},
+          {photo:'Wien',     flag:'🇦🇹', from:'Wien · Graz · Salzburg',  to:'Shkodër · Durrës', price:'55-70€', qs:['Wien','Shkodër']},
+          {photo:'London',   flag:'🇬🇧', from:'London',                  to:'Prishtinë',        price:'120-150€',qs:['London','Prishtinë']},
+        ].map(d=>`
+          <div class="dest-card reveal" onclick="quickSearch('${d.qs[0]}','${d.qs[1]}')">
+            <img src="${cityPhoto(d.photo)}" alt="${d.from}" loading="lazy"/>
+            <div class="dest-overlay">
+              <span class="dest-price-badge">${d.price} / person</span>
+              <div class="dest-flag-row">${d.flag}</div>
+              <div class="dest-from">${d.from}</div>
+              <div class="dest-arrow">→ <span>${d.to}</span></div>
+            </div>
           </div>`).join('')}
       </div>
     </div>
