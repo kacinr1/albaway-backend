@@ -21,6 +21,11 @@
   backdrop-filter:blur(10px);transition:border-color .2s;
 }
 .faq-item:hover{border-color:rgba(255,255,255,.12)}
+/* page statique — pas de curseur custom JS, on remet le curseur OS */
+body{cursor:auto}
+button{cursor:auto}
+a{cursor:auto}
+a[href]{cursor:pointer}
 .faq-q{
   width:100%;display:flex;align-items:center;justify-content:space-between;
   padding:18px 20px;font-size:.95rem;font-weight:600;color:#fff;

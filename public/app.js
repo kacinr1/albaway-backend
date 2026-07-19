@@ -5,7 +5,7 @@
 
 const API = '/api';
 let token = localStorage.getItem('bbs_token') || null;
-let me    = JSON.parse(localStorage.getItem('bbs_user') || 'null');
+let me; try { me = JSON.parse(localStorage.getItem('bbs_user') || 'null'); } catch(e) { me = null; localStorage.removeItem('bbs_user'); }
 let socket = null;
 
 // ─── CITY PHOTOS (Unsplash) ────────────────────────────────────────────────
@@ -231,7 +231,11 @@ function pushNotif(title, body) {
 
 // ─── SOCKET ────────────────────────────────────────────────────────────────
 function initSocket() {
-  if (typeof io === 'undefined') return;
+  if (typeof io === 'undefined') {
+    window.addEventListener('load', () => { if (typeof io !== 'undefined') initSocket(); }, { once: true });
+    return;
+  }
+  if (socket) return;
   try { socket = io(); } catch(e) { return; }
   socket.on('connect', () => { if (me && token) socket.emit('identify', { id: me.id, token }); });
   socket.on('new_request', d => {
