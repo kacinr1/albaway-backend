@@ -887,15 +887,52 @@ app.post('/api/admin/test-email', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   if (!process.env.RESEND_API_KEY)
     return res.json({ error: '❌ RESEND_API_KEY non défini dans Render' });
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { data, error } = await resend.emails.send({
-    from:    'AlbaWay <noreply@albaway.ch>',
-    to:      to || 'kacinr1@gmail.com',
-    subject: 'AlbaWay — Test email ✅',
-    html:    '<h2>🇦🇱 AlbaWay</h2><p>Si tu reçois ce mail, Resend fonctionne !</p>'
-  });
-  if (error) return res.json({ error: error.message, details: error });
-  res.json({ ok: true, id: data.id, msg: 'Email envoyé !' });
+
+  const dest = to || 'kacinr1@gmail.com';
+  const demo = { name: 'Arben Krasniqi', route: 'Zürich → Prishtinë', date: '2026-07-28', time: '08:00', phone: '+41 79 123 45 67' };
+  const results = [];
+
+  const templates = [
+    { subject: '1/5 · Mirë se erdhët në AlbaWay 🇦🇱', html: emailWrap(`
+      <p>Mirëdita <strong>${demo.name}</strong>,</p>
+      <p style="color:rgba(255,255,255,.7)">Llogaria juaj u krijua me sukses! Tani mund të kërkoni ose publikoni udhëtime.</p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">🔍 Kërko udhëtim</a>
+      </div>`) },
+    { subject: '2/5 · Kërkesë e re rezervimi — Zürich → Prishtinë', html: emailWrap(`
+      <p>Mirëdita <strong>${demo.name}</strong>,</p>
+      <p style="color:rgba(255,255,255,.7)"><strong>Blerina Morina</strong> dëshiron të rezervojë <strong>2 vend(e)</strong> për rrugën <strong>${demo.route}</strong> më datën <strong>${demo.date}</strong>.</p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">✅ Prano ose Refuzo</a>
+      </div>`) },
+    { subject: '3/5 · Rezervimi u pranua ✅ — Zürich → Prishtinë', html: emailWrap(`
+      <p>Mirëdita <strong>${demo.name}</strong>,</p>
+      <p style="color:rgba(255,255,255,.7)">Shoferi <strong>Driton Berisha</strong> pranoi rezervimin tuaj për rrugën <strong>${demo.route}</strong> më datën <strong>${demo.date}</strong> ora <strong>${demo.time}</strong>.</p>
+      <p style="color:rgba(255,255,255,.7)">Hyni në AlbaWay dhe klikoni <strong>"Paguaj"</strong> për të konfirmuar vendin tuaj.</p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">💳 Paguaj tani</a>
+      </div>`) },
+    { subject: '4/5 · Pagesa u konfirmua 💳 — Zürich → Prishtinë', html: emailWrap(`
+      <p>Mirëdita <strong>${demo.name}</strong>,</p>
+      <p style="color:rgba(255,255,255,.7)">Pagesa juaj u konfirmua për rrugën <strong>${demo.route}</strong> më datën <strong>${demo.date}</strong>.</p>
+      <p style="color:rgba(255,255,255,.7)">Kontakti i shoferit: <strong>Driton Berisha</strong> · 📞 ${demo.phone}</p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">💬 Hap chatin</a>
+      </div>`) },
+    { subject: '5/5 · Udhëtimi u anulua ❌ — Zürich → Prishtinë', html: emailWrap(`
+      <p>Mirëdita <strong>${demo.name}</strong>,</p>
+      <p style="color:rgba(255,255,255,.7)">Fatkeqësisht, udhëtimi <strong>${demo.route}</strong> i datës <strong>${demo.date}</strong> u anulua nga shoferi. Rezervimi juaj u anulua automatikisht.</p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">🔍 Kërko udhëtim tjetër</a>
+      </div>`) },
+  ];
+
+  for (const tpl of templates) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { data, error } = await resend.emails.send({ from:'AlbaWay <noreply@albaway.ch>', to: dest, subject: tpl.subject, html: tpl.html });
+    results.push({ subject: tpl.subject, ok: !error, id: data?.id, error: error?.message });
+  }
+  res.json({ sent_to: dest, results });
 });
 
 app.post('/api/admin/unlock', async (req, res) => {
