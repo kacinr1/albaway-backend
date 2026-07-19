@@ -447,16 +447,18 @@ async function renderHome() {
 
   try {
     const trips = await apiFetch('/trips');
+    const upcoming = trips.filter(tr => departureMs(tr.date, tr.time) > Date.now());
+    const cards = upcoming.slice(0,6).map(tripCard).filter(Boolean).join('');
     document.getElementById('trips-home').innerHTML = `
       <div class="section-header-row reveal">
         <div><div class="section-tag">${t('trips_upcoming')}</div><div class="section-h">${t('trips_find')}</div></div>
         <button class="btn-see-all" onclick="navigate('search')">${t('trips_see_all')}</button>
       </div>
-      ${trips.length
-        ? `<div class="trips-grid">${trips.slice(0,6).map(tripCard).join('')}</div>`
-        : `<div class="empty-state"><div class="empty-icon">🚗</div><h3>Nuk ka udhëtime</h3></div>`}`;
+      ${cards ? `<div class="trips-grid">${cards}</div>`
+              : `<div class="empty-state"><div class="empty-icon">🚗</div><h3>Nuk ka udhëtime</h3></div>`}`;
     animateReveal();
     initGSAP();
+    startCountdownUpdater();
   } catch {
     document.getElementById('trips-home').innerHTML = '';
   }
@@ -919,15 +921,52 @@ function doSearch() {
 }
 function quickSearch(f,t) { navigate('search',{from:f,to:t}); }
 
+// ─── COUNTDOWN ─────────────────────────────────────────────────────────────
+function departureMs(date, time) {
+  return new Date(`${date}T${(time||'00:00').slice(0,5)}:00`).getTime();
+}
+function getCountdown(date, time) {
+  const diff = departureMs(date, time) - Date.now();
+  if (diff <= 0) return null;
+  const totalMin = Math.floor(diff / 60000);
+  const d = Math.floor(totalMin / 1440);
+  const h = Math.floor((totalMin % 1440) / 60);
+  const m = totalMin % 60;
+  if (d >= 7)  return { text:`${d} ditë`,        cls:'cd-normal' };
+  if (d >= 1)  return { text:`${d}d ${h}h`,       cls:'cd-soon' };
+  if (h >= 1)  return { text:`${h}h ${m}m`,       cls:'cd-urgent' };
+  return         { text:`${m} min`,               cls:'cd-critical' };
+}
+function startCountdownUpdater() {
+  clearInterval(window._cdTimer);
+  window._cdTimer = setInterval(() => {
+    document.querySelectorAll('.tc[data-dep-date]').forEach(card => {
+      const cd = getCountdown(card.dataset.depDate, card.dataset.depTime);
+      const badge = card.querySelector('.tc-countdown');
+      if (!cd) {
+        card.style.transition = 'opacity .8s, transform .8s';
+        card.style.opacity = '0'; card.style.transform = 'scale(.96)';
+        setTimeout(() => card.remove(), 900);
+      } else if (badge) {
+        badge.textContent = '⏱ ' + cd.text;
+        badge.className = 'tc-countdown ' + cd.cls;
+      }
+    });
+  }, 30000);
+}
+
 // ─── CARD ──────────────────────────────────────────────────────────────────
 function tripCard(t) {
   const img = cityPhoto(t.from_city);
+  const cd  = getCountdown(t.date, t.time);
+  if (!cd) return ''; // déjà parti — on ne l'affiche pas
   return `
-  <div class="tc reveal" onclick="navigate('trip/${t.id}')">
+  <div class="tc reveal" onclick="navigate('trip/${t.id}')" data-dep-date="${t.date}" data-dep-time="${esc(t.time)}">
     <div class="tc-img">
       <img src="${img}" alt="${esc(t.from_city)}" loading="lazy"/>
       <div class="tc-overlay"></div>
       <span class="tc-price">${t.price}€</span>
+      <span class="tc-countdown ${cd.cls}">⏱ ${cd.text}</span>
     </div>
     <div class="tc-body">
       <div class="tc-route">${esc(t.from_city)}<span class="tc-arr">→</span>${esc(t.to_city)}</div>

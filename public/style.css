@@ -376,6 +376,18 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
   color:#fff;font-weight:800;font-size:.95rem;
   padding:5px 14px;border-radius:100px;
 }
+.tc-countdown{
+  position:absolute;bottom:10px;left:12px;
+  backdrop-filter:blur(8px);
+  color:#fff;font-weight:700;font-size:.78rem;
+  padding:4px 11px;border-radius:100px;
+  letter-spacing:.02em;transition:background .4s;
+}
+.cd-normal  { background:rgba(22,163,74,.85); }
+.cd-soon    { background:rgba(202,138,4,.9);  }
+.cd-urgent  { background:rgba(234,88,12,.9);  }
+.cd-critical{ background:rgba(220,38,38,.95); animation:cd-pulse 1s ease-in-out infinite; }
+@keyframes cd-pulse{0%,100%{opacity:1}50%{opacity:.6}}
 .tc-body{padding:18px}
 .tc-route{
   font-family:'Space Grotesk',sans-serif;
