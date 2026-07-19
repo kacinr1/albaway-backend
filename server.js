@@ -568,6 +568,7 @@ app.get('/api/trips', async (req, res) => {
       from_point: r.from_point, to_point: r.to_point, date: r.date, time: r.time,
       seats: r.seats, seats_available: r.seats_available, price: r.price,
       vehicle: r.vehicle, options: r.options, notes: r.notes,
+      women_only: r.women_only || false,
       status: r.status, created_at: r.created_at,
       driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips } : null
     }));
