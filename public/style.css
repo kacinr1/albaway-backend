@@ -19,8 +19,8 @@ body{
   min-height:100vh;overflow-x:hidden;
   cursor:none;
 }
-a{text-decoration:none;color:inherit}
-button{cursor:none;font-family:inherit;border:none;background:none}
+a{text-decoration:none;color:inherit;touch-action:manipulation}
+button{cursor:none;font-family:inherit;border:none;background:none;touch-action:manipulation}
 input,select,textarea{font-family:inherit;cursor:none}
 
 /* ── CURSOR ────────────────────────────────────────────── */
@@ -823,7 +823,7 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
 .tc,.tlc,.bk-card,.my-tc,.bc,.req-card,
 .btn-book,.btn-publish,.btn-see-all,.search-go,
 .btn-nav-ghost,.btn-nav-red,.btn-accept,.btn-refuse,.btn-manage,.btn-cancel-t,
-.tab-btn,.seat-btn,.ot-item,.lang-btn{
+.tab-btn,.seat-btn,.ot-item,.lang-btn,.faq-q{
   touch-action:manipulation;
 }
 
@@ -834,8 +834,9 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
   background:#141929;
   border:1px solid rgba(255,255,255,.12);
   border-radius:12px;overflow:hidden;
-  z-index:9000;
+  z-index:500;
   box-shadow:0 12px 40px rgba(0,0,0,.6);
+  pointer-events:none;
 }
 .ac-item{
   padding:12px 16px;font-size:.9rem;
@@ -844,6 +845,7 @@ body:not(:hover) .cursor,.cursor-trail{opacity:0}
   color:rgba(255,255,255,.85);
   user-select:none;-webkit-user-select:none;
   touch-action:manipulation;
+  pointer-events:auto;
 }
 .ac-item:hover,.ac-item.ac-sel{
   background:rgba(228,30,32,.2);color:#fff;
