@@ -65,7 +65,7 @@ app.use(helmet({
       "script-src-attr": ["'unsafe-inline'"],
       "style-src":       ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       "font-src":    ["'self'", "https://fonts.gstatic.com"],
-      "img-src":     ["'self'", "data:", "https://images.unsplash.com", "https://*.basemaps.cartocdn.com"],
+      "img-src":     ["'self'", "data:", "https://*.basemaps.cartocdn.com"],
       "connect-src": ["'self'", "wss://albaway.ch", "https://albaway.ch", "https://api.stripe.com"],
       "frame-src":   ["'none'"],
       "object-src":  ["'none'"],
