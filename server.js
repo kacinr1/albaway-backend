@@ -184,6 +184,9 @@ async function initDb() {
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT ''`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_status TEXT DEFAULT 'none'`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_doc TEXT DEFAULT ''`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at BIGINT`);
   await q(`ALTER TABLE trips ADD COLUMN IF NOT EXISTS women_only BOOLEAN DEFAULT FALSE`);
   await q(`CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY,
@@ -551,7 +554,7 @@ app.get('/api/trips', async (req, res) => {
   try {
     const { from, to, date, seats } = req.query;
     let text = `
-      SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips
+      SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips, u.verified_status as drv_verified
       FROM trips t LEFT JOIN users u ON u.id = t.driver_id
       WHERE t.status = 'active'
     `;
@@ -570,7 +573,7 @@ app.get('/api/trips', async (req, res) => {
       vehicle: r.vehicle, options: r.options, notes: r.notes,
       women_only: r.women_only || false,
       status: r.status, created_at: r.created_at,
-      driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips } : null
+      driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips, verified: r.drv_verified === 'verified' } : null
     }));
     res.json(result);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -610,7 +613,7 @@ app.get('/api/trips/:id', async (req, res) => {
 
     res.json({
       ...trip,
-      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count } : null,
+      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count, verified_status: drv.verified_status } : null,
       passengers,
       passengers_count: accepted.length
     });
@@ -883,6 +886,65 @@ app.post('/api/stripe/webhook', async (req, res) => {
     }
   }
   res.json({ received: true });
+});
+
+// ─── VERIFICATION CHAUFFEUR ───────────────────────────────────────────────
+app.post('/api/profile/verify-request', auth, async (req, res) => {
+  try {
+    const { doc_base64 } = req.body;
+    if (!doc_base64) return res.status(400).json({ error: 'Dokument i nevojshëm' });
+    if (req.user.verified_status === 'verified')
+      return res.status(400).json({ error: 'Profili juaj është tashmë i verifikuar' });
+    await q("UPDATE users SET verified_status='pending', verification_doc=$1 WHERE id=$2", [doc_base64, req.user.id]);
+    const base = process.env.FRONTEND_URL || 'https://albaway.ch';
+    const secret = process.env.ADMIN_SECRET || '';
+    sendEmail('kacinr1@gmail.com', `🔍 Verifikim i ri — ${req.user.name}`, emailWrap(`
+      <p>Shoferi <strong>${req.user.name}</strong> (${req.user.email}) ka kërkuar verifikimin e profilit.</p>
+      <div style="margin:20px 0;text-align:center">
+        <img src="${doc_base64}" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,.2)" alt="Dokument"/>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px">
+        <a href="${base}/api/admin/verify-driver?secret=${encodeURIComponent(secret)}&uid=${req.user.id}&action=approve"
+           style="background:#22c55e;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">✅ Aprovo</a>
+        <a href="${base}/api/admin/verify-driver?secret=${encodeURIComponent(secret)}&uid=${req.user.id}&action=reject"
+           style="background:#ef4444;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">❌ Refuzo</a>
+      </div>`));
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/verify-driver', async (req, res) => {
+  const { secret, uid, action } = req.query;
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
+    return res.status(403).send('Forbidden');
+  if (!['approve','reject'].includes(action))
+    return res.status(400).send('Action invalide');
+  try {
+    const { rows: [user] } = await q('SELECT * FROM users WHERE id=$1', [uid]);
+    if (!user) return res.status(404).send('Utilisateur introuvable');
+    const newStatus = action === 'approve' ? 'verified' : 'rejected';
+    await q("UPDATE users SET verified_status=$1, verified_at=$2, verification_doc='' WHERE id=$3", [newStatus, Date.now(), uid]);
+    if (action === 'approve') {
+      sendEmail(user.email, '✅ Profili juaj u verifikua — AlbaWay', emailWrap(`
+        <p>Mirëdita <strong>${user.name}</strong>,</p>
+        <p style="color:rgba(255,255,255,.7)">Profili juaj si shofer u verifikua me sukses! Tani keni <strong>badge-in ✅ Verifikuar</strong> të dukshëm në të gjitha udhëtimet tuaja.</p>
+        <div style="text-align:center;margin:28px 0">
+          <a href="https://albaway.ch" style="background:#22c55e;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">🚗 Shiko profilin tim</a>
+        </div>`));
+    } else {
+      sendEmail(user.email, '❌ Kërkesa e verifikimit u refuzua — AlbaWay', emailWrap(`
+        <p>Mirëdita <strong>${user.name}</strong>,</p>
+        <p style="color:rgba(255,255,255,.7)">Dokumenti i ngarkuar nuk plotëson kriteret. Ngarkoni një foto të qartë të lejes suaj të drejtimit dhe riprovoni.</p>
+        <div style="text-align:center;margin:28px 0">
+          <a href="https://albaway.ch" style="background:#E41E20;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block">🔄 Riprovoj</a>
+        </div>`));
+    }
+    res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0a0a0f;color:#fff;min-height:100vh">
+      <div style="font-size:4rem">${action==='approve'?'✅':'❌'}</div>
+      <h1 style="color:${action==='approve'?'#22c55e':'#ef4444'}">${action==='approve'?'Aprovuar':'Refuzuar'}</h1>
+      <p style="color:rgba(255,255,255,.6)">Shoferi <strong>${user.name}</strong> u ${action==='approve'?'verifikua':'refuzua'}.<br>Email i dërguar.</p>
+    </body></html>`);
+  } catch(e) { res.status(500).send('Gabim: ' + e.message); }
 });
 
 // ─── ADMIN (temporaire) ───────────────────────────────────────────────────

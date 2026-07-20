@@ -674,6 +674,7 @@ async function renderTripDetail(id) {
             <div class="glass-card driver-card-big reveal">
               <div class="drv-av-big" style="background:${avatarColor(drv?.name||'?')}">${initials_(drv?.name||'?')}</div>
               <div class="drv-name">${esc(drv?.name||'Shofer')}</div>
+              ${drv?.verified_status==='verified'?'<div class="drv-verified-badge">✅ Shofer i Verifikuar</div>':''}
               <div class="drv-rate">⭐ ${drv?.rating?.toFixed(1)||''}</div>
               <div class="drv-stats">
                 <div><div class="drv-stat-v">${drv?.trips_count||0}</div><div class="drv-stat-l">Udhëtime</div></div>
@@ -808,6 +809,70 @@ async function doPublish() {
   } catch(e) { toast(e.message,'error'); }
 }
 
+// ─── VERIFY SECTION ────────────────────────────────────────────────────────
+function verifySection() {
+  const vs = me?.verified_status || 'none';
+  if (vs === 'verified') return `
+    <div class="glass-card reveal" style="margin-bottom:20px;border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="font-size:2rem">✅</span>
+        <div><div style="font-weight:700;color:#4ade80">Shofer i verifikuar</div>
+        <div style="font-size:.82rem;color:rgba(255,255,255,.5)">Badge-i juaj është i dukshëm në të gjitha udhëtimet</div></div>
+      </div>
+    </div>`;
+  if (vs === 'pending') return `
+    <div class="glass-card reveal" style="margin-bottom:20px;border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.05)">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="font-size:2rem">⏳</span>
+        <div><div style="font-weight:700;color:#fbbf24">Kërkesa në pritje</div>
+        <div style="font-size:.82rem;color:rgba(255,255,255,.5)">Dokumenti juaj është duke u shqyrtuar. Do të njoftoheni me email.</div></div>
+      </div>
+    </div>`;
+  return `
+    <div class="glass-card reveal" style="margin-bottom:20px">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <span style="font-size:2rem">🪪</span>
+        <div><div style="font-weight:700">Bëhu shofer i verifikuar</div>
+        <div style="font-size:.82rem;color:rgba(255,255,255,.5);margin-top:3px">
+          ${vs==='rejected'?'<span style="color:#f87171">❌ Kërkesa e fundit u refuzua.</span> ':''}
+          Ngarko foton e lejes tënde të drejtimit — ne e shqyrtojmë brenda 24 orësh.
+        </div></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;transition:border-color .2s" onmouseenter="this.style.borderColor='rgba(228,30,32,.5)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.2)'">
+        <span style="font-size:1.4rem">📷</span>
+        <span style="font-size:.875rem;color:rgba(255,255,255,.6)">Kliko për të ngarkuar lejen e drejtimit</span>
+        <input type="file" accept="image/*,.pdf" style="display:none" onchange="doVerifyUpload(this)"/>
+      </label>
+      <div id="verify-preview" style="margin-top:12px"></div>
+    </div>`;
+}
+
+async function doVerifyUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('Fajlli është shumë i madh (max 5MB)','error'); return; }
+  const prev = document.getElementById('verify-preview');
+  prev.innerHTML = `<div style="color:rgba(255,255,255,.5);font-size:.82rem">Duke ngarkuar…</div>`;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const b64 = e.target.result;
+    prev.innerHTML = `
+      <img src="${b64}" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover;margin-bottom:10px"/>
+      <button class="btn-publish" style="width:100%;padding:12px;margin:0" onclick="doVerifySubmit('${b64.replace(/'/g,"\\'")}')">📤 Dërgo për verifikim</button>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function doVerifySubmit(b64) {
+  try {
+    await apiFetch('/profile/verify-request','POST',{ doc_base64: b64 });
+    me.verified_status = 'pending';
+    localStorage.setItem('bbs_user', JSON.stringify(me));
+    toast('✅ Kërkesa u dërgua! Do të njoftoheni me email.','success');
+    navigate('dashboard');
+  } catch(e) { toast(e.message,'error'); }
+}
+
 // ─── DASHBOARD ─────────────────────────────────────────────────────────────
 async function renderDashboard() {
   if (!me) { openModal('login'); return; }
@@ -823,6 +888,7 @@ async function renderDashboard() {
         </div>
         <button onclick="logout()" class="btn-cancel-t">Dil</button>
       </div>
+      ${verifySection()}
       <div class="tabs">
         <button class="tab-btn on" id="tb-d" onclick="swTab('d')">${t('dash_driver')}</button>
         <button class="tab-btn"    id="tb-p" onclick="swTab('p')">${t('dash_passenger')}</button>
@@ -1077,7 +1143,7 @@ function tripCard(t) {
       </div>
       <div class="tc-footer">
         <div class="tc-av" style="background:${avatarColor(t.driver?.name||'?')}">${initials_(t.driver?.name||'?')}</div>
-        <div><div class="tc-dname">${esc(t.driver?.name||'?')}</div><div class="tc-drate">⭐ ${t.driver?.rating?.toFixed(1)||''}</div></div>
+        <div><div class="tc-dname">${esc(t.driver?.name||'?')}${t.driver?.verified?'<span class="drv-verified-mini">✅</span>':''}</div><div class="tc-drate">⭐ ${t.driver?.rating?.toFixed(1)||''}</div></div>
         <button class="tc-btn">Rezervo</button>
       </div>
     </div>
