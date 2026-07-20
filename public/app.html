@@ -311,6 +311,11 @@ a{color:inherit}
   padding:8px 12px;margin-bottom:13px;display:none;
 }
 .demo-banner.show{display:block}
+.cd-ok   {color:#4ade80;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3)}
+.cd-warn {color:#fbbf24;background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.3)}
+.cd-hot  {color:#fb923c;background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.3)}
+.cd-fire {color:#FF9C94;background:var(--kuq-soft);border-color:rgba(218,41,28,.35);animation:cdpulse 1s ease-in-out infinite}
+@keyframes cdpulse{0%,100%{opacity:1}50%{opacity:.5}}
 </style>
 </head>
 <body>
@@ -659,6 +664,36 @@ function connectSocket(){
   }catch(e){console.warn('socket',e);}
 }
 
+/* ---------- COUNTDOWN ---------- */
+function departureMs(date,time){return new Date(`${date}T${(time||'00:00').slice(0,5)}:00`).getTime();}
+function getCountdown(date,time){
+  const diff=departureMs(date,time)-Date.now();
+  if(diff<=0) return null;
+  const m=Math.floor(diff/60000),d=Math.floor(m/1440),h=Math.floor((m%1440)/60),mn=m%60;
+  if(d>=7)  return {text:`${d}d`,cls:'cd-ok'};
+  if(d>=1)  return {text:`${d}d ${h}h`,cls:'cd-warn'};
+  if(h>=1)  return {text:`${h}h ${mn}m`,cls:'cd-hot'};
+  return        {text:`${mn} min`,cls:'cd-fire'};
+}
+function startCountdownUpdater(){
+  clearInterval(window._cdT);
+  window._cdT=setInterval(()=>{
+    document.querySelectorAll('.trip[data-dep]').forEach(card=>{
+      const [date,time]=card.dataset.dep.split('|');
+      const cd=getCountdown(date,time);
+      const chip=card.querySelector('.cd-chip');
+      if(!cd){
+        card.style.transition='opacity .7s,transform .7s';
+        card.style.opacity='0';card.style.transform='scale(.96)';
+        setTimeout(()=>card.remove(),750);
+      } else if(chip){
+        chip.textContent='⏱ '+cd.text;
+        chip.className='chip cd-chip '+cd.cls;
+      }
+    });
+  },30000);
+}
+
 /* ---------- SEARCH ---------- */
 let lastResults=[];
 async function doSearch(){
@@ -677,10 +712,14 @@ async function doSearch(){
 $('btn-search').onclick=doSearch;
 function renderResults(trips){
   const box=$('results');
-  $('results-count').textContent=trips.length? trips.length+' 🚗':'';
-  if(!trips.length){box.innerHTML=`<div class="glass empty"><div class="big">🛣️</div>${t('noresults')}</div>`;return;}
-  box.innerHTML=trips.map(tr=>`
-    <div class="glass trip" data-id="${tr.id}">
+  // Filtre les trajets déjà partis
+  const upcoming=trips.filter(tr=>departureMs(tr.date,tr.time)>Date.now());
+  $('results-count').textContent=upcoming.length? upcoming.length+' 🚗':'';
+  if(!upcoming.length){box.innerHTML=`<div class="glass empty"><div class="big">🛣️</div>${t('noresults')}</div>`;return;}
+  box.innerHTML=upcoming.map(tr=>{
+    const cd=getCountdown(tr.date,tr.time);
+    return `
+    <div class="glass trip" data-id="${tr.id}" data-dep="${tr.date}|${tr.time||'00:00'}">
       <div class="trip-head">
         <div class="route">
           <span class="city">${esc(tr.from_city)}</span><span class="line"></span><span class="city">${esc(tr.to_city)}</span>
@@ -690,17 +729,20 @@ function renderResults(trips){
       <div class="trip-meta">
         <span class="chip">📅 ${fmtDate(tr.date)} · ${esc(tr.time)}</span>
         <span class="chip ${tr.seats_available<=1?'hot':''}">💺 ${tr.seats_available}</span>
+        ${cd?`<span class="chip cd-chip ${cd.cls}">⏱ ${cd.text}</span>`:''}
         ${tr.vehicle&&tr.vehicle.model?`<span class="chip">🚘 ${esc(tr.vehicle.model)}</span>`:''}
+        ${tr.women_only?`<span class="chip" style="color:#c4b5fd;border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12)">👩 Vetëm femra</span>`:''}
       </div>
       <div class="trip-foot">
         <div class="driver">
-          <div class="avatar">${initials(tr.driver_name||'D')}</div>
-          <div><div class="nm">${esc(tr.driver_name||'Shofer')}</div><div class="st">★ ${tr.rating||'—'}</div></div>
+          <div class="avatar">${initials(tr.driver_name||(tr.driver&&tr.driver.name)||'D')}</div>
+          <div><div class="nm">${esc(tr.driver_name||(tr.driver&&tr.driver.name)||'Shofer')}${tr.driver&&tr.driver.verified?' ✅':''}</div><div class="st">★ ${tr.rating||(tr.driver&&tr.driver.rating)||'—'}</div></div>
         </div>
         <button class="btn small" data-open="${tr.id}">${t('book')} ›</button>
       </div>
-    </div>`).join('');
-  box.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(trips.find(x=>x.id==b.dataset.open)));
+    </div>`;}).join('');
+  box.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(upcoming.find(x=>x.id==b.dataset.open)));
+  startCountdownUpdater();
 }
 
 /* ---------- DETAIL + BOOKING + STRIPE ---------- */
