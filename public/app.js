@@ -8,6 +8,27 @@ let token = localStorage.getItem('bbs_token') || null;
 let me; try { me = JSON.parse(localStorage.getItem('bbs_user') || 'null'); } catch(e) { me = null; localStorage.removeItem('bbs_user'); }
 let socket = null;
 
+// ─── DRIVER BADGES ─────────────────────────────────────────────────────────
+const BADGE_DEF = {
+  verified:   { i:'✅', l:'I Verifikuar',    auto:true  },
+  active:     { i:'🚗', l:'Shofer Aktiv',    auto:true  },
+  experienced:{ i:'🎖️', l:'Me Përvojë',      auto:true  },
+  pro:        { i:'🏆', l:'Pro',             auto:true  },
+  top:        { i:'⭐', l:'Top Notuar',       auto:true  },
+  social:     { i:'💬', l:'I Shoqërueshëm',  auto:false },
+  dj:         { i:'🎵', l:'DJ Shofer',        auto:false },
+  punctual:   { i:'⚡', l:'I Saktë',          auto:false },
+  clean:      { i:'🧹', l:'Veturë e Pastër', auto:false },
+  friendly:   { i:'😊', l:'Shumë Miqësor',   auto:false },
+  safe:       { i:'🛡️', l:'Shofer i Sigurt', auto:false },
+};
+const BADGE_VOTES_LIST = ['social','dj','punctual','clean','friendly','safe'];
+function renderBadges(badges=[]) {
+  if (!badges.length) return '';
+  const arr = Array.isArray(badges) ? badges : (typeof badges==='string'?JSON.parse(badges||'[]'):[]);
+  return arr.map(b=>BADGE_DEF[b]?`<span class="drv-badge">${BADGE_DEF[b].i} ${BADGE_DEF[b].l}</span>`:'').join('');
+}
+
 // ─── CITY PHOTOS (hosted locally) ─────────────────────────────────────────
 const CITY_PHOTOS = {
   'zürich':     '/images/cities/zurich.jpg',
@@ -676,11 +697,15 @@ async function renderTripDetail(id) {
               <div class="drv-name">${esc(drv?.name||'Shofer')}</div>
               ${drv?.verified_status==='verified'?'<div class="drv-verified-badge">✅ Shofer i Verifikuar</div>':''}
               <div class="drv-rate">⭐ ${drv?.rating?.toFixed(1)||''}</div>
+              ${drv?.badges?.length?`<div class="drv-badges-row">${renderBadges(drv.badges)}</div>`:''}
               <div class="drv-stats">
                 <div><div class="drv-stat-v">${drv?.trips_count||0}</div><div class="drv-stat-l">Udhëtime</div></div>
                 <div><div class="drv-stat-v">${t.seats}</div><div class="drv-stat-l">Vende</div></div>
                 <div><div class="drv-stat-v">${t.seats_available}</div><div class="drv-stat-l">Lirë</div></div>
               </div>
+            </div>
+            <div class="glass-card reveal" id="reviews-card-${t.id}">
+              <div style="font-size:.8rem;color:rgba(255,255,255,.3)">Duke ngarkuar komentet…</div>
             </div>
             <div class="glass-card reveal">
               <div class="book-price-row">
@@ -694,6 +719,26 @@ async function renderTripDetail(id) {
       </div>
     </div>`;
     animateReveal();
+    // Load reviews async
+    if (drv?.id) {
+      apiFetch('/ratings/'+drv.id).then(reviews => {
+        const card = document.getElementById(`reviews-card-${t.id}`);
+        if (!card) return;
+        if (!reviews.length) { card.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.82rem;text-align:center">Ende nuk ka komente</div>'; return; }
+        card.innerHTML = `
+          <div style="font-weight:700;margin-bottom:14px">💬 Komentet (${reviews.length})</div>
+          ${reviews.slice(0,5).map(r=>`
+          <div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div class="tc-av" style="background:${avatarColor(r.from_name||'?')};width:28px;height:28px;font-size:.72rem">${initials_(r.from_name||'?')}</div>
+              <span style="font-weight:600;font-size:.875rem">${esc(r.from_name||'?')}</span>
+              <span style="color:#fbbf24;font-size:.85rem">${'⭐'.repeat(r.stars)}</span>
+              <span style="color:rgba(255,255,255,.25);font-size:.72rem;margin-left:auto">${new Date(r.created_at).toLocaleDateString('fr-CH')}</span>
+            </div>
+            ${r.comment?`<div style="color:rgba(255,255,255,.6);font-size:.82rem;font-style:italic">"${esc(r.comment)}"</div>`:''}
+          </div>`).join('')}`;
+      }).catch(()=>{});
+    }
   } catch(e) {
     document.getElementById('app').innerHTML = `<div class="page"><div class="detail-page"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>${esc(e.message)}</h3></div></div></div>`;
   }
@@ -969,7 +1014,11 @@ async function loadPassengerTab() {
             <div id="stars-${b.id}" style="display:flex;gap:6px;margin-bottom:10px">
               ${[1,2,3,4,5].map(s=>`<button onclick="setStar('${b.id}',${s})" id="star-${b.id}-${s}" style="font-size:1.5rem;background:none;color:rgba(255,255,255,.2);transition:all .15s;line-height:1">☆</button>`).join('')}
             </div>
-            <input id="rc-${b.id}" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#fff;font-size:.82rem;margin-bottom:8px" placeholder="Koment opsional..."/>
+            <input id="rc-${b.id}" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#fff;font-size:.82rem;margin-bottom:10px" placeholder="Lër një koment..."/>
+            <div style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:7px">Çfarë të pëlqeu? (opsionale)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="bvote-${b.id}">
+              ${BADGE_VOTES_LIST.map(k=>`<button id="bvb-${b.id}-${k}" onclick="togBV('${b.id}','${k}')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);padding:5px 10px;border-radius:999px;font-size:.75rem;transition:all .15s">${BADGE_DEF[k].i} ${BADGE_DEF[k].l}</button>`).join('')}
+            </div>
             <button onclick="submitRating('${b.id}')" style="background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.3);color:#fbbf24;padding:7px 16px;border-radius:8px;font-size:.82rem;font-weight:700">Dërgo vlerësimin</button>
           </div>` : b.rated ? `<div style="margin-top:10px;font-size:.8rem;color:rgba(255,255,255,.3)">✅ Vlerësimi u dërgua</div>` : ''}
       </div>`;
@@ -1387,7 +1436,18 @@ async function doPay(bookingId) {
 }
 
 // ─── RATING ────────────────────────────────────────────────────────────────
-let _ratingStars = {};
+let _ratingStars = {}, _badgeVotes = {};
+function togBV(bid, k) {
+  if (!_badgeVotes[bid]) _badgeVotes[bid] = new Set();
+  const s = _badgeVotes[bid];
+  s.has(k) ? s.delete(k) : s.add(k);
+  const btn = document.getElementById(`bvb-${bid}-${k}`);
+  if (btn) {
+    btn.style.background    = s.has(k) ? 'rgba(228,30,32,.25)' : 'rgba(255,255,255,.06)';
+    btn.style.borderColor   = s.has(k) ? 'rgba(228,30,32,.5)'  : 'rgba(255,255,255,.12)';
+    btn.style.color         = s.has(k) ? '#fff'                : 'rgba(255,255,255,.55)';
+  }
+}
 function setStar(bid, n) {
   _ratingStars[bid] = n;
   [1,2,3,4,5].forEach(s => {
@@ -1396,11 +1456,12 @@ function setStar(bid, n) {
   });
 }
 async function submitRating(bid) {
-  const stars   = _ratingStars[bid];
-  const comment = document.getElementById(`rc-${bid}`)?.value?.trim() || '';
+  const stars        = _ratingStars[bid];
+  const comment      = document.getElementById(`rc-${bid}`)?.value?.trim() || '';
+  const badges_voted = _badgeVotes[bid] ? [..._badgeVotes[bid]] : [];
   if (!stars) { toast('Zgjidh numrin e yjeve','error'); return; }
   try {
-    await apiFetch('/ratings','POST',{booking_id:bid, stars, comment});
+    await apiFetch('/ratings','POST',{booking_id:bid, stars, comment, badges_voted});
     toast('✅ Faleminderit për vlerësimin!','success');
     loadPassengerTab();
   } catch(e) { toast(e.message,'error'); }

@@ -187,6 +187,8 @@ async function initDb() {
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_status TEXT DEFAULT 'none'`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_doc TEXT DEFAULT ''`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at BIGINT`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS badges JSONB DEFAULT '[]'`);
+  await q(`ALTER TABLE ratings ADD COLUMN IF NOT EXISTS badges_voted JSONB DEFAULT '[]'`);
   await q(`ALTER TABLE trips ADD COLUMN IF NOT EXISTS women_only BOOLEAN DEFAULT FALSE`);
   await q(`CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY,
@@ -392,7 +394,7 @@ function notify(userId, event, payload) {
 // ─── RATINGS API ──────────────────────────────────────────────────────────
 app.post('/api/ratings', auth, async (req, res) => {
   try {
-    const { booking_id, stars, comment } = req.body;
+    const { booking_id, stars, comment, badges_voted } = req.body;
     if (!stars || stars < 1 || stars > 5)
       return res.status(400).json({ error: 'Vlerësimi duhet të jetë 1–5 yje' });
 
@@ -415,9 +417,10 @@ app.post('/api/ratings', auth, async (req, res) => {
     const ratingData = { stars, comment: comment || '', created_at: Date.now() };
     await q('UPDATE bookings SET rated=TRUE, rating=$1 WHERE id=$2', [JSON.stringify(ratingData), booking_id]);
     await q(
-      'INSERT INTO ratings (id,booking_id,trip_id,from_id,to_id,stars,comment,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-      [uid(), booking_id, booking.trip_id, req.user.id, trip.driver_id, stars, comment || '', Date.now()]
+      'INSERT INTO ratings (id,booking_id,trip_id,from_id,to_id,stars,comment,badges_voted,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [uid(), booking_id, booking.trip_id, req.user.id, trip.driver_id, stars, comment || '', JSON.stringify(badges_voted||[]), Date.now()]
     );
+    computeBadges(trip.driver_id);
 
     const { rows: [updated] } = await q('SELECT rating FROM users WHERE id=$1', [trip.driver_id]);
     res.json({ ok: true, new_rating: updated?.rating });
@@ -613,7 +616,7 @@ app.get('/api/trips/:id', async (req, res) => {
 
     res.json({
       ...trip,
-      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count, verified_status: drv.verified_status } : null,
+      driver: drv ? { id: drv.id, name: drv.name, rating: drv.rating, trips_count: drv.trips_count, verified_status: drv.verified_status, badges: drv.badges||[] } : null,
       passengers,
       passengers_count: accepted.length
     });
@@ -887,6 +890,30 @@ app.post('/api/stripe/webhook', async (req, res) => {
   }
   res.json({ received: true });
 });
+
+// ─── BADGES ───────────────────────────────────────────────────────────────
+async function computeBadges(userId) {
+  try {
+    const { rows: [user] }   = await q('SELECT * FROM users WHERE id=$1', [userId]);
+    const { rows: ratings }  = await q('SELECT badges_voted FROM ratings WHERE to_id=$1', [userId]);
+    if (!user) return;
+    const badges = [];
+    if (user.verified_status === 'verified')                              badges.push('verified');
+    if ((user.trips_count||0) >= 3)                                       badges.push('active');
+    if ((user.trips_count||0) >= 10)                                      badges.push('experienced');
+    if ((user.trips_count||0) >= 50 && (user.rating||0) >= 4.8)          badges.push('pro');
+    if ((user.rating||0) >= 4.9 && ratings.length >= 10)                 badges.push('top');
+    const voteCounts = {};
+    ratings.forEach(r => {
+      const voted = Array.isArray(r.badges_voted) ? r.badges_voted : (r.badges_voted ? JSON.parse(r.badges_voted) : []);
+      voted.forEach(b => { voteCounts[b] = (voteCounts[b]||0) + 1; });
+    });
+    ['social','dj','punctual','clean','friendly','safe'].forEach(b => {
+      if ((voteCounts[b]||0) >= 3) badges.push(b);
+    });
+    await q('UPDATE users SET badges=$1 WHERE id=$2', [JSON.stringify(badges), userId]);
+  } catch(e) { console.error('[BADGES]', e.message); }
+}
 
 // ─── VERIFICATION CHAUFFEUR ───────────────────────────────────────────────
 app.post('/api/profile/verify-request', auth, async (req, res) => {
