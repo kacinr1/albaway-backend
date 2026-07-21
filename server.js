@@ -53,6 +53,7 @@ const corsOptions = {
 };
 
 const app    = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: ALLOWED_ORIGINS } });
 
@@ -447,6 +448,8 @@ app.post('/api/register', authLimiter, async (req, res) => {
     const { name, email, password, phone, gender } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: 'Plotëso të gjitha fushat' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: 'Format i email-it i pavlefshëm' });
 
     const { rows: existing } = await q('SELECT id FROM users WHERE email=$1', [email]);
     if (existing.length) return res.status(400).json({ error: 'Ky email është i regjistruar' });
