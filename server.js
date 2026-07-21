@@ -1043,6 +1043,18 @@ app.post('/api/admin/unlock', async (req, res) => {
   res.json({ ok: true, updated: rows.length });
 });
 
+app.post('/api/admin/users', async (req, res) => {
+  const { secret } = req.body;
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
+    return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const { rows } = await q(
+      'SELECT id, name, email, phone, gender, rating, trips_count, verified_status, locked, created_at FROM users ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/admin/clean-demo', async (req, res) => {
   const { secret } = req.body;
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET)
