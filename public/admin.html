@@ -256,8 +256,7 @@ async function loadTrips() {
 function updateStats() {
   const realUsers  = allUsers.filter(u => !DEMO_EMAILS.includes(u.email));
   const lockedUsers = allUsers.filter(u => u.locked);
-  const demoCreatedAt = allTrips.length ? Math.min(...allTrips.map(t=>+t.created_at)) : 0;
-  const realTrips  = allTrips.filter(t => +t.created_at > demoCreatedAt + 1000);
+  const realTrips  = allTrips.filter(t => !t.is_example);
 
   document.getElementById('st-users').textContent = allUsers.length;
   document.getElementById('st-real').textContent = realUsers.length;
@@ -321,8 +320,7 @@ function renderUsers() {
 }
 
 function renderTrips() {
-  const demoCreatedAt = allTrips.length ? Math.min(...allTrips.map(t=>+t.created_at)) : 0;
-  let rows = allTrips.map(t => ({ ...t, _isReal: +t.created_at > demoCreatedAt + 1000 }));
+  let rows = allTrips.map(t => ({ ...t, _isReal: !t.is_example }));
 
   if (tripFilter === 'real') rows = rows.filter(t =>  t._isReal);
   if (tripFilter === 'demo') rows = rows.filter(t => !t._isReal);

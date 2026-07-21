@@ -270,28 +270,78 @@ async function seed() {
     );
   }
 
-  const fmt = d => d.toISOString().slice(0, 10);
-  const d1  = new Date(); d1.setDate(d1.getDate() + 1);
-  const d3  = new Date(); d3.setDate(d3.getDate() + 3);
-  const d5  = new Date(); d5.setDate(d5.getDate() + 5);
-  const d7  = new Date(); d7.setDate(d7.getDate() + 7);
-  const d10 = new Date(); d10.setDate(d10.getDate() + 10);
+  console.log('✅  Kontet demo u ngarkuan.');
+}
 
-  const trips = [
-    [uid(), drivers[0].id, 'Zürich',    'Prishtinë', 'Zürich HB',          'Prishtinë Qendër',   fmt(d1),  '05:30', 3, 80, {type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},      {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Ndalojmë në Salzburg ~20 min.'],
-    [uid(), drivers[1].id, 'Stuttgart', 'Tirana',    'Stuttgart Hbf',       'Sheshi Skënderbej',  fmt(d3),  '04:00', 4, 70, {type:'car',brand:'BMW',model:'5 Series',color:'E bardhë'},         {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Ferry Ancona-Durrës.'],
-    [uid(), drivers[2].id, 'Wien',      'Shkodër',   'Wien Westbahnhof',    'Shkodër Qendër',     fmt(d3),  '06:00', 3, 60, {type:'minivan',brand:'VW',model:'Touran',color:'Gri'},             {luggage:true,smoking:false,music:false,pets:true,ac:true},  'Bashkë me familjen.'],
-    [uid(), drivers[3].id, 'Bern',      'Durrës',    'Bern Hauptbahnhof',   'Durrës Qendër',      fmt(d5),  '05:00', 2, 75, {type:'car',brand:'Audi',model:'A6',color:'E kaltër'},             {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Ndalojmë çdo 3 orë.'],
-    [uid(), drivers[4].id, 'München',   'Shkup',     'München Hbf',         'Shkup Qendër',       fmt(d7),  '06:30', 4, 65, {type:'car',brand:'Volkswagen',model:'Passat',color:'E kuqe'},     {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Rruga Salzburg-Ljubljana.'],
-    [uid(), drivers[0].id, 'Prishtinë', 'Zürich',    'Prishtinë Qendër',    'Zürich HB',          fmt(d10), '03:00', 3, 80, {type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},      {luggage:true,smoking:false,music:true,pets:false,ac:true},  'Kthim Prishtinë→Zürich.'],
-  ];
-  for (const [id, did, fc, tc, fp, tp, date, time, seats, price, vehicle, options, notes] of trips) {
-    await q(
-      'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)',
-      [id, did, fc, tc, fp, tp, date, time, seats, seats, price, JSON.stringify(vehicle), JSON.stringify(options), notes, 'active', now]
-    );
+// ─── EXAMPLE TRIPS (auto-refresh) ────────────────────────────────────────
+const DEMO_EMAILS = ['arben@demo.com','blerina@demo.com','ilir@demo.com','vjosa@demo.com','driton@demo.com'];
+
+async function refreshExampleTrips() {
+  try {
+    const { rows: demoUsers } = await q('SELECT id, email FROM users WHERE email = ANY($1)', [DEMO_EMAILS]);
+    if (!demoUsers.length) return;
+
+    const byEmail = {};
+    demoUsers.forEach(u => { byEmail[u.email] = u.id; });
+    const demoIds = demoUsers.map(u => u.id);
+
+    const { rows: existingTrips } = await q('SELECT id FROM trips WHERE driver_id = ANY($1)', [demoIds]);
+    for (const { id } of existingTrips) {
+      const { rows: paid } = await q("SELECT id FROM bookings WHERE trip_id=$1 AND payment_status='paid'", [id]);
+      if (!paid.length) {
+        await q('DELETE FROM bookings WHERE trip_id=$1', [id]);
+        await q('DELETE FROM trips WHERE id=$1', [id]);
+      }
+    }
+
+    const now    = Date.now();
+    const fmtD   = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    const ex = [
+      {
+        drv: byEmail['arben@demo.com'],
+        fc:'Zürich', tc:'Prishtinë', fp:'Zürich HB', tp:'Prishtinë Qendër',
+        date:fmtD(2),  time:'05:30', seats:4, avail:0, price:80,
+        vehicle:{type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},
+        options:{luggage:true,smoking:false,music:true,pets:false,ac:true},
+        notes:'Ndalojmë në Salzburg ~20 min.'
+      },
+      {
+        drv: byEmail['blerina@demo.com'],
+        fc:'München', tc:'Tirana', fp:'München Hbf', tp:'Sheshi Skënderbej',
+        date:fmtD(6),  time:'04:00', seats:4, avail:0, price:75,
+        vehicle:{type:'car',brand:'BMW',model:'5 Series',color:'E bardhë'},
+        options:{luggage:true,smoking:false,music:true,pets:false,ac:true},
+        notes:'Ferry Ancona-Durrës.'
+      },
+      {
+        drv: byEmail['ilir@demo.com'],
+        fc:'Wien', tc:'Shkodër', fp:'Wien Westbahnhof', tp:'Shkodër Qendër',
+        date:fmtD(10), time:'06:00', seats:4, avail:0, price:60,
+        vehicle:{type:'minivan',brand:'VW',model:'Touran',color:'Gri'},
+        options:{luggage:true,smoking:false,music:false,pets:true,ac:true},
+        notes:'Ndalojmë çdo 3 orë.'
+      },
+      {
+        drv: byEmail['vjosa@demo.com'],
+        fc:'Genève', tc:'Shkup', fp:'Genève Cornavin', tp:'Shkup Qendër',
+        date:fmtD(14), time:'05:00', seats:4, avail:0, price:85,
+        vehicle:{type:'car',brand:'Audi',model:'A6',color:'E kaltër metalike'},
+        options:{luggage:true,smoking:false,music:true,pets:false,ac:true},
+        notes:'Rruga e sigurt, me ndalesa të planifikuara.'
+      },
+    ];
+
+    for (const e of ex) {
+      if (!e.drv) continue;
+      await q(
+        'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,women_only,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)',
+        [uid(), e.drv, e.fc, e.tc, e.fp, e.tp, e.date, e.time, e.seats, e.avail, e.price, JSON.stringify(e.vehicle), JSON.stringify(e.options), e.notes, false, 'active', now]
+      );
+    }
+    console.log('✅  Shembuj udhëtimesh u rifreskuan.');
+  } catch(err) {
+    console.error('refreshExampleTrips error:', err.message);
   }
-  console.log('✅  Të dhënat demo u ngarkuan.');
 }
 
 // ─── AUTH TOKENS (in-memory) ───────────────────────────────────────────────
@@ -566,9 +616,10 @@ app.get('/api/trips', async (req, res) => {
   try {
     const { from, to, date, seats } = req.query;
     let text = `
-      SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips, u.verified_status as drv_verified
+      SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips, u.verified_status as drv_verified,
+             (u.email LIKE '%@demo.com') as is_example
       FROM trips t LEFT JOIN users u ON u.id = t.driver_id
-      WHERE t.status = 'active'
+      WHERE t.status = 'active' AND t.date >= CURRENT_DATE
     `;
     const params = [];
     if (from)  { params.push(`%${from.toLowerCase()}%`); text += ` AND LOWER(t.from_city) LIKE $${params.length}`; }
@@ -585,6 +636,7 @@ app.get('/api/trips', async (req, res) => {
       vehicle: r.vehicle, options: r.options, notes: r.notes,
       women_only: r.women_only || false,
       status: r.status, created_at: r.created_at,
+      is_example: r.is_example || false,
       driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips, verified: r.drv_verified === 'verified' } : null
     }));
     res.json(result);
@@ -1121,10 +1173,12 @@ const PORT = process.env.PORT || 3001;
 createPool()
   .then(initDb)
   .then(seed)
+  .then(refreshExampleTrips)
   .then(() => {
     server.listen(PORT, () => {
       console.log(`\n🇦🇱  AlbaWay → http://localhost:${PORT}\n`);
       console.log('   Kontet demo: arben@demo.com / demo123\n');
+      setInterval(refreshExampleTrips, 24 * 60 * 60 * 1000);
     });
   })
   .catch(err => {
