@@ -50,12 +50,14 @@ function ensureDb() {
 const ALLOWED_ORIGINS = [
   'https://albaway.ch',
   'https://www.albaway.ch',
+  'https://albaway-backend.vercel.app',
   ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3001'] : [])
 ];
 
 const corsOptions = {
   origin: (origin, cb) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    if (origin.endsWith('.vercel.app')) return cb(null, true);
     cb(new Error('CORS: origin not allowed'));
   },
   credentials: true,
@@ -76,7 +78,7 @@ app.use(helmet({
       "style-src":       ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       "font-src":    ["'self'", "https://fonts.gstatic.com"],
       "img-src":     ["'self'", "data:", "https://*.basemaps.cartocdn.com"],
-      "connect-src": ["'self'", "wss://albaway.ch", "https://albaway.ch", "https://api.stripe.com"],
+      "connect-src": ["'self'", "wss://albaway.ch", "https://albaway.ch", "https://albaway-backend.vercel.app", "https://api.stripe.com"],
       "frame-src":   ["'none'"],
       "object-src":  ["'none'"],
     },
