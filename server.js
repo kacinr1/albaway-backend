@@ -368,30 +368,17 @@ async function refreshExampleTrips() {
 // ─── AUTH TOKENS (PostgreSQL) ─────────────────────────────────────────────
 async function createToken(userId) {
   const t = crypto.randomUUID();
-  try {
-    await q('INSERT INTO auth_tokens (token, user_id, created_at) VALUES ($1,$2,$3)', [t, userId, Date.now()]);
-    console.log('[token] INSERT ok:', t);
-  } catch(e) {
-    console.error('[token] INSERT error:', e.message);
-    throw e;
-  }
+  await q('INSERT INTO auth_tokens (token, user_id, created_at) VALUES ($1,$2,$3)', [t, userId, Date.now()]);
   return t;
 }
 
 async function getUser(req) {
   const h = req.headers.authorization || '';
   if (!h.startsWith('Bearer ')) return null;
-  const token = h.slice(7);
-  try {
-    const { rows } = await q('SELECT user_id FROM auth_tokens WHERE token=$1', [token]);
-    console.log('[token] SELECT for', token.slice(0,8), '→ rows:', rows.length);
-    if (!rows.length) return null;
-    const { rows: users } = await q('SELECT * FROM users WHERE id=$1', [rows[0].user_id]);
-    return users[0] || null;
-  } catch(e) {
-    console.error('[token] SELECT error:', e.message);
-    return null;
-  }
+  const { rows } = await q('SELECT user_id FROM auth_tokens WHERE token=$1', [h.slice(7)]);
+  if (!rows.length) return null;
+  const { rows: users } = await q('SELECT * FROM users WHERE id=$1', [rows[0].user_id]);
+  return users[0] || null;
 }
 
 function auth(req, res, next) {
@@ -641,7 +628,7 @@ app.post('/api/auth/reset', async (req, res) => {
 });
 
 app.get('/api/me', auth, (req, res) => {
-  const { password: _, ...safe } = req.user;
+  const { password: _, reset_token: __, reset_token_expires: ___, verification_doc: ____, ...safe } = req.user;
   res.json(safe);
 });
 
@@ -911,7 +898,7 @@ app.post('/api/bookings/:id/checkout', auth, async (req, res) => {
       drv = rows[0] || null;
     }
 
-    const base = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const base = process.env.FRONTEND_URL || 'https://albaway.ch';
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
