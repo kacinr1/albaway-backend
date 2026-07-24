@@ -38,6 +38,15 @@ async function createPool() {
   });
 }
 
+let _dbInit = null;
+function ensureDb() {
+  if (!_dbInit) {
+    _dbInit = createPool().then(initDb).then(seed).then(refreshExampleTrips)
+      .catch(e => { _dbInit = null; throw e; });
+  }
+  return _dbInit;
+}
+
 const ALLOWED_ORIGINS = [
   'https://albaway.ch',
   'https://www.albaway.ch',
@@ -79,6 +88,11 @@ app.use(helmet({
 app.use(express.json({
   verify: (req, res, buf) => { if (req.path === '/api/stripe/webhook') req.rawBody = buf; }
 }));
+
+app.use(async (req, res, next) => {
+  try { await ensureDb(); next(); }
+  catch(e) { res.status(503).json({ error: 'DB unavailable' }); }
+});
 // Route PWA mobile
 app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'app.html'));
@@ -247,6 +261,11 @@ async function initDb() {
     comment TEXT DEFAULT '',
     created_at BIGINT NOT NULL
   )`);
+  await q(`CREATE TABLE IF NOT EXISTS auth_tokens (
+    token TEXT PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    created_at BIGINT NOT NULL
+  )`);
 }
 
 // ─── SEED ─────────────────────────────────────────────────────────────────
@@ -344,22 +363,20 @@ async function refreshExampleTrips() {
   }
 }
 
-// ─── AUTH TOKENS (in-memory) ───────────────────────────────────────────────
-const tokens = new Map();
-
-function createToken(userId) {
+// ─── AUTH TOKENS (PostgreSQL) ─────────────────────────────────────────────
+async function createToken(userId) {
   const t = crypto.randomUUID();
-  tokens.set(t, userId);
+  await q('INSERT INTO auth_tokens (token, user_id, created_at) VALUES ($1,$2,$3)', [t, userId, Date.now()]);
   return t;
 }
 
 async function getUser(req) {
   const h = req.headers.authorization || '';
   if (!h.startsWith('Bearer ')) return null;
-  const userId = tokens.get(h.slice(7));
-  if (!userId) return null;
-  const { rows } = await q('SELECT * FROM users WHERE id=$1', [userId]);
-  return rows[0] || null;
+  const { rows } = await q('SELECT user_id FROM auth_tokens WHERE token=$1', [h.slice(7)]);
+  if (!rows.length) return null;
+  const { rows: users } = await q('SELECT * FROM users WHERE id=$1', [rows[0].user_id]);
+  return users[0] || null;
 }
 
 function auth(req, res, next) {
@@ -377,7 +394,9 @@ const userSockets = new Map();
 
 io.on('connection', socket => {
   socket.on('identify', async ({ id, token: tok } = {}) => {
-    if (!id || !tok || tokens.get(tok) !== id) return;
+    if (!id || !tok) return;
+    const { rows } = await pool.query('SELECT user_id FROM auth_tokens WHERE token=$1', [tok]);
+    if (!rows.length || rows[0].user_id !== id) return;
     userSockets.set(id, socket.id);
     socket.userId = id;
   });
@@ -518,7 +537,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
       'INSERT INTO users (id,name,email,password,phone,gender,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
       [user.id, user.name, user.email, user.password, user.phone, user.gender, user.rating, user.trips_count, user.created_at]
     );
-    const token = createToken(user.id);
+    const token = await createToken(user.id);
     const { password: _, ...safe } = user;
     sendEmail(user.email, 'Mirë se erdhët në AlbaWay 🇦🇱', emailWrap(`
       <p>Mirëdita <strong>${user.name}</strong>,</p>
@@ -564,7 +583,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
     if (!user.password.startsWith('$2')) {
       await q('UPDATE users SET password=$1 WHERE id=$2', [await hashPassword(password), user.id]);
     }
-    const token = createToken(user.id);
+    const token = await createToken(user.id);
     const { password: _, reset_token: __, reset_token_expires: ___, ...safe } = user;
     res.json({ token, user: safe });
   } catch(e) { res.status(500).json({ error: 'Gabim serveri' }); }
@@ -1170,20 +1189,17 @@ app.use((req, res) => {
 // ─── START ────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 
-createPool()
-  .then(initDb)
-  .then(seed)
-  .then(refreshExampleTrips)
-  .then(() => {
+if (!process.env.VERCEL) {
+  ensureDb().then(() => {
     server.listen(PORT, () => {
       console.log(`\n🇦🇱  AlbaWay → http://localhost:${PORT}\n`);
       console.log('   Kontet demo: arben@demo.com / demo123\n');
       setInterval(refreshExampleTrips, 24 * 60 * 60 * 1000);
     });
-  })
-  .catch(err => {
+  }).catch(err => {
     console.error('❌  DB init failed:', err);
     process.exit(1);
   });
+}
 
-module.exports = { server, io };
+module.exports = app;
