@@ -368,17 +368,30 @@ async function refreshExampleTrips() {
 // ─── AUTH TOKENS (PostgreSQL) ─────────────────────────────────────────────
 async function createToken(userId) {
   const t = crypto.randomUUID();
-  await q('INSERT INTO auth_tokens (token, user_id, created_at) VALUES ($1,$2,$3)', [t, userId, Date.now()]);
+  try {
+    await q('INSERT INTO auth_tokens (token, user_id, created_at) VALUES ($1,$2,$3)', [t, userId, Date.now()]);
+    console.log('[token] INSERT ok:', t);
+  } catch(e) {
+    console.error('[token] INSERT error:', e.message);
+    throw e;
+  }
   return t;
 }
 
 async function getUser(req) {
   const h = req.headers.authorization || '';
   if (!h.startsWith('Bearer ')) return null;
-  const { rows } = await q('SELECT user_id FROM auth_tokens WHERE token=$1', [h.slice(7)]);
-  if (!rows.length) return null;
-  const { rows: users } = await q('SELECT * FROM users WHERE id=$1', [rows[0].user_id]);
-  return users[0] || null;
+  const token = h.slice(7);
+  try {
+    const { rows } = await q('SELECT user_id FROM auth_tokens WHERE token=$1', [token]);
+    console.log('[token] SELECT for', token.slice(0,8), '→ rows:', rows.length);
+    if (!rows.length) return null;
+    const { rows: users } = await q('SELECT * FROM users WHERE id=$1', [rows[0].user_id]);
+    return users[0] || null;
+  } catch(e) {
+    console.error('[token] SELECT error:', e.message);
+    return null;
+  }
 }
 
 function auth(req, res, next) {
