@@ -640,7 +640,7 @@ app.get('/api/trips', async (req, res) => {
       SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips, u.verified_status as drv_verified,
              (u.email LIKE '%@demo.com') as is_example
       FROM trips t LEFT JOIN users u ON u.id = t.driver_id
-      WHERE t.status = 'active' AND t.date >= CURRENT_DATE
+      WHERE t.status = 'active' AND t.date::date >= CURRENT_DATE
     `;
     const params = [];
     if (from)  { params.push(`%${from.toLowerCase()}%`); text += ` AND LOWER(t.from_city) LIKE $${params.length}`; }
