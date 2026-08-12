@@ -1227,6 +1227,49 @@ app.get('/health', async (_, res) => {
   } catch(e) { res.status(500).json({ status: 'db_error', error: e.message }); }
 });
 
+// ─── OG DYNAMIQUE PAR TRAJET ───────────────────────────────────────────────
+// Sert index.html avec des balises OG/Twitter + JSON-LD spécifiques au trajet,
+// pour des partages riches sur WhatsApp/Facebook (canal n°1 de la diaspora).
+let _indexHtmlCache = null;
+app.get('/trip/:id', async (req, res, next) => {
+  try {
+    const { rows: [t] } = await q(
+      'SELECT t.*, u.name AS drv_name FROM trips t LEFT JOIN users u ON u.id = t.driver_id WHERE t.id = $1',
+      [req.params.id]
+    );
+    if (!t) return next();
+    if (!_indexHtmlCache) _indexHtmlCache = require('fs').readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+
+    const q2 = (s) => String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const seats = (t.seats_available != null ? t.seats_available : t.seats);
+    const url   = `https://albaway.ch/trip/${t.id}`;
+    const title = `${t.from_city} → ${t.to_city} · ${t.date} · ${t.price} CHF — AlbaWay`;
+    const desc  = `Bashkudhëtim ${t.from_city} → ${t.to_city} më ${t.date}${t.time ? ' ' + t.time : ''} · ${t.price} CHF · ${seats} vende${t.drv_name ? ' · Shofer: ' + t.drv_name : ''}. Rezervo në AlbaWay.`;
+    const tripLd = {
+      '@context': 'https://schema.org', '@type': 'Trip', name: `${t.from_city} → ${t.to_city}`,
+      description: desc, url,
+      itinerary: [
+        { '@type': 'City', name: t.from_city },
+        { '@type': 'City', name: t.to_city },
+      ],
+      offers: { '@type': 'Offer', price: t.price, priceCurrency: 'CHF', availability: 'https://schema.org/InStock', url },
+    };
+
+    let html = _indexHtmlCache
+      .replace(/<title>[\s\S]*?<\/title>/i, `<title>${q2(title)}</title>`)
+      .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${q2(desc)}"/>`)
+      .replace(/<meta\s+property="og:title"[^>]*>/i, `<meta property="og:title" content="${q2(title)}"/>`)
+      .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${q2(desc)}"/>`)
+      .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${url}"/>`)
+      .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1https://albaway.ch/logo.png$2`)
+      .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${q2(title)}"/>`)
+      .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${q2(desc)}"/>`)
+      .replace(/<\/head>/i, `  <script type="application/ld+json">${JSON.stringify(tripLd)}</script>\n</head>`);
+
+    res.set('Content-Type', 'text/html; charset=utf-8').send(html);
+  } catch (e) { next(); }
+});
+
 // ─── SPA FALLBACK ─────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.includes('.')) return next();
