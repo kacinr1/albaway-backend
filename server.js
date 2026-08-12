@@ -276,6 +276,9 @@ async function initDb() {
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     created_at BIGINT NOT NULL
   )`);
+  // Avis post-trajet : notation bidirectionnelle + contrainte unique (un avis par auteur et par réservation)
+  await q(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS rated_by_driver BOOLEAN DEFAULT FALSE`);
+  await q(`CREATE UNIQUE INDEX IF NOT EXISTS ratings_from_booking_uidx ON ratings(from_id, booking_id)`);
 }
 
 // ─── SEED ─────────────────────────────────────────────────────────────────
@@ -485,31 +488,45 @@ app.post('/api/ratings', auth, async (req, res) => {
       return res.status(400).json({ error: 'Vlerësimi duhet të jetë 1–5 yje' });
 
     const { rows: [booking] } = await q('SELECT * FROM bookings WHERE id=$1', [booking_id]);
-    if (!booking)                             return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
-    if (booking.passenger_id !== req.user.id) return res.status(403).json({ error: 'Nuk keni akses' });
-    if (booking.status !== 'accepted')        return res.status(400).json({ error: 'Vetëm rezervimet e pranuara mund të vlerësohen' });
-    if (booking.rated)                        return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
+    if (!booking)                      return res.status(404).json({ error: 'Rezervimi nuk u gjet' });
+    if (booking.status !== 'accepted') return res.status(400).json({ error: 'Vetëm rezervimet e pranuara mund të vlerësohen' });
 
     const { rows: [trip] } = await q('SELECT * FROM trips WHERE id=$1', [booking.trip_id]);
     if (!trip) return res.status(404).json({ error: 'Udhëtimi nuk u gjet' });
 
-    const { rows: [driver] } = await q('SELECT * FROM users WHERE id=$1', [trip.driver_id]);
-    if (driver) {
-      const count     = driver.trips_count || 1;
-      const newRating = Math.round(((driver.rating || 5) * (count - 1) + stars) / count * 10) / 10;
-      await q('UPDATE users SET rating=$1 WHERE id=$2', [newRating, driver.id]);
+    // Notation bidirectionnelle : le passager note le conducteur, le conducteur note le passager.
+    const isPassenger = booking.passenger_id === req.user.id;
+    const isDriver    = trip.driver_id === req.user.id;
+    if (!isPassenger && !isDriver) return res.status(403).json({ error: 'Nuk keni akses' });
+    if (isPassenger && booking.rated)           return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
+    if (isDriver    && booking.rated_by_driver) return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
+
+    const targetId = isPassenger ? trip.driver_id : booking.passenger_id;
+
+    try {
+      await q(
+        'INSERT INTO ratings (id,booking_id,trip_id,from_id,to_id,stars,comment,badges_voted,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [uid(), booking_id, booking.trip_id, req.user.id, targetId, stars, comment || '', JSON.stringify(badges_voted||[]), Date.now()]
+      );
+    } catch(err) {
+      if (/unique|duplicate/i.test(err.message)) return res.status(400).json({ error: 'Tashmë e keni vlerësuar' });
+      throw err;
     }
 
-    const ratingData = { stars, comment: comment || '', created_at: Date.now() };
-    await q('UPDATE bookings SET rated=TRUE, rating=$1 WHERE id=$2', [JSON.stringify(ratingData), booking_id]);
-    await q(
-      'INSERT INTO ratings (id,booking_id,trip_id,from_id,to_id,stars,comment,badges_voted,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-      [uid(), booking_id, booking.trip_id, req.user.id, trip.driver_id, stars, comment || '', JSON.stringify(badges_voted||[]), Date.now()]
-    );
-    computeBadges(trip.driver_id);
+    if (isPassenger) {
+      const ratingData = { stars, comment: comment || '', created_at: Date.now() };
+      await q('UPDATE bookings SET rated=TRUE, rating=$1 WHERE id=$2', [JSON.stringify(ratingData), booking_id]);
+    } else {
+      await q('UPDATE bookings SET rated_by_driver=TRUE WHERE id=$1', [booking_id]);
+    }
 
-    const { rows: [updated] } = await q('SELECT rating FROM users WHERE id=$1', [trip.driver_id]);
-    res.json({ ok: true, new_rating: updated?.rating });
+    // Recalcule la moyenne du destinataire depuis la table ratings.
+    const { rows: [agg] } = await q('SELECT ROUND(AVG(stars)::numeric,1) AS avg, COUNT(*) AS n FROM ratings WHERE to_id=$1', [targetId]);
+    const newRating = parseFloat(agg.avg) || stars;
+    await q('UPDATE users SET rating=$1 WHERE id=$2', [newRating, targetId]);
+    if (isPassenger) computeBadges(targetId);
+
+    res.json({ ok: true, new_rating: newRating, count: parseInt(agg.n) });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -523,6 +540,25 @@ app.get('/api/ratings/:user_id', async (req, res) => {
       ORDER BY r.created_at DESC
       LIMIT 20
     `, [req.params.user_id]);
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Avis récents publics — alimente la section témoignages de l'accueil.
+app.get('/api/reviews/recent', async (req, res) => {
+  try {
+    const { rows } = await q(`
+      SELECT r.stars, r.comment, r.created_at,
+             fu.name AS from_name, tu.name AS to_name,
+             t.from_city, t.to_city
+      FROM ratings r
+      LEFT JOIN users fu ON fu.id = r.from_id
+      LEFT JOIN users tu ON tu.id = r.to_id
+      LEFT JOIN trips  t ON t.id  = r.trip_id
+      WHERE r.comment <> ''
+      ORDER BY r.created_at DESC
+      LIMIT 8
+    `);
     res.json(rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -649,6 +685,7 @@ app.get('/api/trips', async (req, res) => {
     const { from, to, date, seats } = req.query;
     let text = `
       SELECT t.*, u.id as drv_id, u.name as drv_name, u.rating as drv_rating, u.trips_count as drv_trips, u.verified_status as drv_verified,
+             (SELECT COUNT(*) FROM ratings WHERE to_id = u.id) as drv_reviews,
              (u.email LIKE '%@demo.com') as is_example
       FROM trips t LEFT JOIN users u ON u.id = t.driver_id
       WHERE t.status = 'active' AND t.date::date >= CURRENT_DATE
@@ -669,7 +706,7 @@ app.get('/api/trips', async (req, res) => {
       women_only: r.women_only || false,
       status: r.status, created_at: r.created_at,
       is_example: r.is_example || false,
-      driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips, verified: r.drv_verified === 'verified' } : null
+      driver: r.drv_id ? { id: r.drv_id, name: r.drv_name, rating: r.drv_rating, trips_count: r.drv_trips, reviews_count: parseInt(r.drv_reviews) || 0, verified: r.drv_verified === 'verified' } : null
     }));
     res.json(result);
   } catch(e) { res.status(500).json({ error: e.message }); }

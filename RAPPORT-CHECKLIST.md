@@ -10,7 +10,7 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 | 1 | Titres uniques (SSR) | ✅ | Middleware `seo-inject.js` : titres par route (/, /about, /faq, /legal) × 4 langues. |
 | 2 | Page de remerciement | ⚠️ | Confirmations paiement/réservation via notifications temps réel + emails. **Reco** : page/écran dédié post-paiement avec event GA4 `purchase` (valeur = commission). |
 | 3 | robots.txt + sitemap.xml | ✅ | Présents (`/api`, `/dashboard` bloqués ; `/admin` en `X-Robots-Tag: noindex`). **Reco** : ajouter les pages corridors au sitemap si créées. |
-| 4 | Avis clients | ⚠️ | Table `ratings` + `GET /api/ratings/:user_id` + note moyenne sur les profils déjà en place. **Reco** : UI d'avis post-trajet (1–5★ + commentaire, contrainte unique author/trip) + affichage sur cartes de trajet. |
+| 4 | Avis clients | ✅ | Notation **bidirectionnelle** (passager↔conducteur) + **contrainte unique** (from_id, booking_id) + moyenne recalculée depuis la table. **Nb d'avis affiché sur les cartes de trajet**. Endpoint public `/api/reviews/recent` + **section témoignages sur l'accueil** (4 langues). **Reco** : ajouter l'UI de notation côté conducteur (backend prêt). |
 | 5 | CTA sticky mobile | ⚠️ | Hero avec recherche + CTA présents. **Reco** : barre sticky « Kërko udhëtim » sur pages de contenu (hors flow paiement). |
 | 6 | Meta descriptions (SSR) | ✅ | Uniques par route × 4 langues via le middleware. |
 | 7 | Fil d'Ariane | N/A | Pertinent seulement si les pages corridors (item 3) sont créées. |
@@ -25,7 +25,7 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 | 16 | Google Analytics (GA4) | ✅ | `public/consent.js` : GA4 chargé **après consentement** (bandeau 4 langues), `page_view` SPA sur History API, helper `albawayTrack()`. GA id injecté par le SSR. Events câblés : `sign_up`, `search_trips`, `publish_trip`, `begin_checkout`, `purchase`. **Reco** : ajouter la valeur (commission) sur `purchase` (côté serveur) + `view_trip`. |
 | 17 | Liens internes | ✅/⚠️ | Footer relie about/faq/legal/app. **Reco** : compléter par langue + lier les corridors entre eux si créés. |
 | 18 | Schema (adapté) | ✅ | JSON-LD `Organization` global injecté. **Reco** : schema `Trip`/`Event` (`offers`) par page trajet. |
-| 19 | Études de cas / témoignages | ⚠️ | **Reco** : section « Historitë tona » (2–3 récits, placeholders TODO). |
+| 19 | Études de cas / témoignages | ✅ | Section « Historitë tona » sur l'accueil, alimentée par les vrais avis récents (`/api/reviews/recent`), 4 langues. |
 
 ## Ce qui a été livré dans cette passe
 - `seo-inject.js` — middleware SSR (titres/meta/OG/hreflang/JSON-LD/GA par route+langue), monté avant `express.static`.

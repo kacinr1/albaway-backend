@@ -446,6 +446,8 @@ async function renderHome() {
       </div>
     </div>
 
+    <div class="section-wrap" id="testimonials-home"></div>
+
     <div class="section-wrap">
       <div class="reveal" style="text-align:center;margin-bottom:40px">
         <div class="section-tag">Rrugët tona</div>
@@ -570,6 +572,39 @@ async function renderHome() {
     startCountdownUpdater();
   } catch {
     document.getElementById('trips-home').innerHTML = '';
+  }
+
+  loadTestimonials();
+}
+
+// ─── TÉMOIGNAGES (avis récents) ────────────────────────────────────────────
+async function loadTestimonials() {
+  const wrap = document.getElementById('testimonials-home');
+  if (!wrap) return;
+  try {
+    const reviews = await apiFetch('/reviews/recent');
+    if (!reviews || !reviews.length) { wrap.innerHTML = ''; return; }
+    const cards = reviews.filter(r => r.comment).slice(0, 6).map(r => {
+      const route = r.from_city && r.to_city ? `${esc(r.from_city)} → ${esc(r.to_city)}` : '';
+      const stars = '⭐'.repeat(Math.max(1, Math.min(5, r.stars || 5)));
+      return `<div class="testi-card reveal" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px">
+        <div style="color:#fbbf24;font-size:.9rem;margin-bottom:8px">${stars}</div>
+        <p style="color:rgba(255,255,255,.82);font-size:.92rem;line-height:1.5;margin:0 0 12px">« ${esc(r.comment)} »</p>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;color:rgba(255,255,255,.5)">
+          <b style="color:rgba(255,255,255,.75)">${esc(r.from_name||'')}</b>${route?`<span>· ${route}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    if (!cards) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `
+      <div class="reveal" style="text-align:center;margin-bottom:40px">
+        <div class="section-tag">${t('testi_tag')}</div>
+        <div class="section-h">${t('testi_h')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">${cards}</div>`;
+    if (window.animateReveal) animateReveal();
+  } catch {
+    wrap.innerHTML = '';
   }
 }
 
@@ -1204,7 +1239,7 @@ function tripCard(t) {
       </div>
       <div class="tc-footer">
         <div class="tc-av" style="background:${avatarColor(t.driver?.name||'?')}">${initials_(t.driver?.name||'?')}</div>
-        <div><div class="tc-dname">${esc(t.driver?.name||'?')}${t.driver?.verified?'<span class="drv-verified-mini">✅</span>':''}</div><div class="tc-drate">⭐ ${t.driver?.rating?.toFixed(1)||''}</div></div>
+        <div><div class="tc-dname">${esc(t.driver?.name||'?')}${t.driver?.verified?'<span class="drv-verified-mini">✅</span>':''}</div><div class="tc-drate">⭐ ${t.driver?.rating?.toFixed(1)||''}${t.driver?.reviews_count?` <span style="opacity:.6">(${t.driver.reviews_count})</span>`:''}</div></div>
         <button class="tc-btn">Rezervo</button>
       </div>
     </div>
