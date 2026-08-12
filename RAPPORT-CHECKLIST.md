@@ -16,13 +16,13 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 | 7 | Fil d'Ariane | N/A | Pertinent seulement si les pages corridors (item 3) sont créées. |
 | 8 | Confidentialité + CGU | ✅ | `legal.html` couvre CGU (Kushtet), confidentialité, GDPR et Stripe. **Checkbox consentement CGU+confidentialité à l'inscription ajoutée + loggée en DB** (`consent_terms`, `consent_at`, `consent_version` ; endpoint rejette l'inscription sans consentement). **Reco** : citer explicitement Resend + hébergeur DB + transferts hors UE dans le texte de `legal.html`. |
 | 9 | Images de partage RS | ✅/⚠️ | `og-image.png` était **manquante** (partages cassés) → OG/Twitter pointent désormais vers `/logo.png`. **Reco forte** : créer une vraie image 1200×630 de marque, et générer une OG dynamique par trajet (« Genève → Pristina · 45 CHF · 3 places »). |
-| 10 | FAQ + schema | ⚠️ | `faq.html` existe (contenu i18n client). **Reco** : injecter un JSON-LD `FAQPage` côté serveur (extensible dans `seo-inject.js`). |
+| 10 | FAQ + schema | ✅ | `faq.html` + JSON-LD `FAQPage` (16 Q/R) injecté côté serveur par `seo-inject.js`. |
 | 11 | 404 personnalisée | ✅ | `404.html` servie avec statut HTTP 404 (fallback Express). |
 | 12 | Carte + itinéraire | ⚠️ | **Reco** : afficher l'itinéraire du corridor (Leaflet/OSM) sur les pages trajets. |
 | 13 | CTA sans scroller | ⚠️ | Module de recherche dans le hero. **Reco** : vérifier 375×667 que départ/arrivée/date sont visibles sans scroll. |
 | 14 | Alt text | ⚠️ | À auditer sur les images de villes (`public/images/cities`). |
 | 15 | Temps de réponse (Render) | ✅/⚠️ | `/health` en place. Webhook Stripe **idempotent vérifié** (garde `payment_status !== 'paid'`). **Reco** : ping externe (cron-job.org / UptimeRobot) toutes les 10 min sur `/health` pour éviter les cold starts ; **passer au tier payant Render avant la haute saison** (cold start pendant un paiement = panier abandonné). |
-| 16 | Google Analytics (GA4) | ✅ | `public/consent.js` : GA4 chargé **après consentement** (bandeau 4 langues), `page_view` SPA sur History API, helper `albawayTrack()`. GA id injecté par le SSR. Event `sign_up` câblé. **Reco** : brancher aussi `search_trips`, `view_trip`, `begin_checkout`, `purchase`, `publish_trip`. |
+| 16 | Google Analytics (GA4) | ✅ | `public/consent.js` : GA4 chargé **après consentement** (bandeau 4 langues), `page_view` SPA sur History API, helper `albawayTrack()`. GA id injecté par le SSR. Events câblés : `sign_up`, `search_trips`, `publish_trip`, `begin_checkout`, `purchase`. **Reco** : ajouter la valeur (commission) sur `purchase` (côté serveur) + `view_trip`. |
 | 17 | Liens internes | ✅/⚠️ | Footer relie about/faq/legal/app. **Reco** : compléter par langue + lier les corridors entre eux si créés. |
 | 18 | Schema (adapté) | ✅ | JSON-LD `Organization` global injecté. **Reco** : schema `Trip`/`Event` (`offers`) par page trajet. |
 | 19 | Études de cas / témoignages | ⚠️ | **Reco** : section « Historitë tona » (2–3 récits, placeholders TODO). |

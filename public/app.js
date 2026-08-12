@@ -307,6 +307,7 @@ function initSocket() {
     loadDriverTab();
   });
   socket.on('payment_success', () => {
+    if (window.albawayTrack) albawayTrack('purchase');
     showNotif('accepted','✅ Pagesa u konfirmua!','Tani mund të chatoni me shoferin.');
     pushNotif('AlbaWay — Pagesë e suksesshme ✅', 'Tani mund të chatoni me shoferin.');
     loadPassengerTab();
@@ -850,6 +851,7 @@ async function doPublish() {
       women_only:document.getElementById('oi-women')?.classList.contains('on')||false
     });
     toast('✅ Udhëtimi u publikua!','success');
+    if (window.albawayTrack) albawayTrack('publish_trip',{trip_id:t.id});
     navigate('trip/'+t.id);
   } catch(e) { toast(e.message,'error'); }
 }
@@ -1140,6 +1142,7 @@ function doSearch() {
   const from = (document.getElementById('h-from')||document.getElementById('s-from'))?.value?.trim()||'';
   const to   = (document.getElementById('h-to')  ||document.getElementById('s-to'))?.value?.trim()||'';
   const date = (document.getElementById('h-date') ||document.getElementById('s-date'))?.value||'';
+  if (window.albawayTrack) albawayTrack('search_trips',{from,to});
   navigate('search',{from,to,date});
 }
 function quickSearch(f,t) { navigate('search',{from:f,to:t}); }
@@ -1439,6 +1442,7 @@ async function doReset(token) {
 async function doPay(bookingId) {
   try {
     toast('Duke hapur pagesën...','info');
+    if (window.albawayTrack) albawayTrack('begin_checkout',{booking_id:bookingId});
     const { url } = await apiFetch('/bookings/'+bookingId+'/checkout','POST');
     window.location.href = url;
   } catch(e) { toast(e.message,'error'); }
