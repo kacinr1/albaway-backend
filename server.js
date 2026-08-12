@@ -305,6 +305,51 @@ async function initDb() {
   await q(`CREATE UNIQUE INDEX IF NOT EXISTS ratings_from_booking_uidx ON ratings(from_id, booking_id)`);
 }
 
+// ─── DEMO DRIVERS (pool varié) ───────────────────────────────────────────
+// Pool de conducteurs démo aux prénoms albanais variés (H/F). Les 5 premiers
+// gardent leurs emails historiques (comptes de connexion démo). Utilisé par
+// seed() (base vide) ET ensureDemoDrivers() (upsert sur base existante) pour
+// éviter que les trajets d'exemple affichent toujours les mêmes noms.
+const DEMO_DRIVERS = [
+  { name: 'Arben Krasniqi',    email: 'arben@demo.com',    phone: '+41 79 123 45 67', rating: 4.9, trips_count: 24 },
+  { name: 'Blerina Hoxha',     email: 'blerina@demo.com',  phone: '+49 176 987 65 43', rating: 4.7, trips_count: 11 },
+  { name: 'Ilir Berisha',      email: 'ilir@demo.com',     phone: '+43 699 222 33 44', rating: 4.8, trips_count: 18 },
+  { name: 'Vjosa Gashi',       email: 'vjosa@demo.com',    phone: '+41 78 333 22 11',  rating: 5.0, trips_count: 7  },
+  { name: 'Driton Morina',     email: 'driton@demo.com',   phone: '+49 163 555 66 77', rating: 4.6, trips_count: 32 },
+  { name: 'Agron Kelmendi',    email: 'agron@demo.com',    phone: '+41 76 210 44 18', rating: 4.8, trips_count: 21 },
+  { name: 'Besnik Rexhepi',    email: 'besnik@demo.com',   phone: '+49 151 445 22 90', rating: 4.5, trips_count: 15 },
+  { name: 'Fatmir Shala',      email: 'fatmir@demo.com',   phone: '+41 79 664 90 27', rating: 4.9, trips_count: 28 },
+  { name: 'Gëzim Bytyqi',      email: 'gezim@demo.com',    phone: '+43 660 118 77 34', rating: 4.7, trips_count: 13 },
+  { name: 'Liridon Zeqiri',    email: 'liridon@demo.com',  phone: '+41 78 902 15 60', rating: 5.0, trips_count: 9  },
+  { name: 'Valon Kastrati',    email: 'valon@demo.com',    phone: '+49 172 338 61 05', rating: 4.6, trips_count: 19 },
+  { name: 'Endrit Halili',     email: 'endrit@demo.com',   phone: '+41 76 550 27 83', rating: 4.8, trips_count: 26 },
+  { name: 'Granit Vokrri',     email: 'granit@demo.com',   phone: '+43 664 209 51 12', rating: 4.7, trips_count: 16 },
+  { name: 'Teuta Dedaj',       email: 'teuta@demo.com',    phone: '+41 79 771 08 44', rating: 5.0, trips_count: 12 },
+  { name: 'Arta Nokaj',        email: 'arta@demo.com',     phone: '+49 160 884 33 21', rating: 4.9, trips_count: 20 },
+  { name: 'Elira Bardhi',      email: 'elira@demo.com',    phone: '+41 78 445 66 09', rating: 4.8, trips_count: 8  },
+  { name: 'Donika Leka',       email: 'donika@demo.com',   phone: '+41 76 332 90 57', rating: 4.6, trips_count: 14 },
+  { name: 'Kaltrina Thaçi',    email: 'kaltrina@demo.com', phone: '+49 152 667 41 88', rating: 4.9, trips_count: 23 },
+  { name: 'Fjolla Prekazi',    email: 'fjolla@demo.com',   phone: '+43 699 553 12 76', rating: 5.0, trips_count: 6  },
+  { name: 'Lindita Curri',     email: 'lindita@demo.com',  phone: '+41 79 218 74 30', rating: 4.7, trips_count: 17 },
+];
+const DEMO_EMAILS = DEMO_DRIVERS.map(d => d.email);
+
+async function insertDemoDriver(d, pw, now) {
+  await q(
+    `INSERT INTO users (id,name,email,password,phone,rating,trips_count,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (email) DO NOTHING`,
+    [uid(), d.name, d.email, pw, d.phone, d.rating, d.trips_count, now]
+  );
+}
+
+// Insère les conducteurs démo manquants (idempotent) — fonctionne sur base prod
+// déjà peuplée, contrairement à seed() qui ne tourne que sur base vide.
+async function ensureDemoDrivers() {
+  const pw = await hashPassword('demo123');
+  const now = Date.now();
+  for (const d of DEMO_DRIVERS) await insertDemoDriver(d, pw, now);
+}
+
 // ─── SEED ─────────────────────────────────────────────────────────────────
 async function seed() {
   const { rows } = await q('SELECT COUNT(*) FROM users');
@@ -312,33 +357,43 @@ async function seed() {
 
   const pw  = await hashPassword('demo123');
   const now = Date.now();
-  const drivers = [
-    { id: uid(), name: 'Arben Krasniqi',  email: 'arben@demo.com',   phone: '+41 79 123 45 67', rating: 4.9, trips_count: 24 },
-    { id: uid(), name: 'Blerina Hoxha',   email: 'blerina@demo.com', phone: '+49 176 987 65 43', rating: 4.7, trips_count: 11 },
-    { id: uid(), name: 'Ilir Berisha',    email: 'ilir@demo.com',    phone: '+43 699 222 33 44', rating: 4.8, trips_count: 18 },
-    { id: uid(), name: 'Vjosa Gashi',     email: 'vjosa@demo.com',   phone: '+41 78 333 22 11',  rating: 5.0, trips_count: 7  },
-    { id: uid(), name: 'Driton Morina',   email: 'driton@demo.com',  phone: '+49 163 555 66 77', rating: 4.6, trips_count: 32 },
-  ];
-  for (const d of drivers) {
-    await q(
-      'INSERT INTO users (id,name,email,password,phone,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-      [d.id, d.name, d.email, pw, d.phone, d.rating, d.trips_count, now]
-    );
-  }
+  for (const d of DEMO_DRIVERS) await insertDemoDriver(d, pw, now);
 
   console.log('✅  Kontet demo u ngarkuan.');
 }
 
 // ─── EXAMPLE TRIPS (auto-refresh) ────────────────────────────────────────
-const DEMO_EMAILS = ['arben@demo.com','blerina@demo.com','ilir@demo.com','vjosa@demo.com','driton@demo.com'];
+// Modèles de trajets d'exemple (sans conducteur) — un conducteur DISTINCT est
+// tiré aléatoirement du pool à chaque refresh pour varier les noms affichés.
+const EXAMPLE_TEMPLATES = [
+  { fc:'Zürich',    tc:'Prishtinë', fp:'Zürich HB',          tp:'Prishtinë Qendër',    time:'05:30', price:80, vehicle:{type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},        options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'Ndalojmë në Salzburg ~20 min.' },
+  { fc:'Genève',    tc:'Prishtinë', fp:'Genève Cornavin',    tp:'Prishtinë Qendër',    time:'04:45', price:85, vehicle:{type:'car',brand:'Audi',model:'A6',color:'Gri metalik'},           options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'Nisemi herët, mbërrijmë në mbrëmje.' },
+  { fc:'München',   tc:'Tiranë',    fp:'München Hbf',        tp:'Sheshi Skënderbej',   time:'04:00', price:75, vehicle:{type:'car',brand:'BMW',model:'5 Series',color:'E bardhë'},         options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'Ferry Ancona–Durrës.' },
+  { fc:'Wien',      tc:'Shkodër',   fp:'Wien Westbahnhof',   tp:'Shkodër Qendër',      time:'06:00', price:60, vehicle:{type:'minivan',brand:'VW',model:'Touran',color:'Gri'},           options:{luggage:true,smoking:false,music:false,pets:true, ac:true}, notes:'Ndalojmë çdo 3 orë.' },
+  { fc:'Genève',    tc:'Shkup',     fp:'Genève Cornavin',    tp:'Shkup Qendër',        time:'05:00', price:85, vehicle:{type:'car',brand:'Škoda',model:'Superb',color:'E kaltër'},        options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'Rrugë e sigurt me ndalesa të planifikuara.' },
+  { fc:'Stuttgart', tc:'Tiranë',    fp:'Stuttgart Hbf',      tp:'Sheshi Skënderbej',   time:'03:30', price:78, vehicle:{type:'car',brand:'Mercedes',model:'C-Class',color:'Argjend'},     options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'2 vende të lira, valixhe të mëdha OK.' },
+  { fc:'Bern',      tc:'Prishtinë', fp:'Bern Bahnhof',       tp:'Prishtinë Qendër',    time:'05:15', price:82, vehicle:{type:'car',brand:'VW',model:'Passat',color:'E zezë'},            options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'Ndalesë kafeje në Zagreb.' },
+  { fc:'Bâle',      tc:'Prishtinë', fp:'Basel SBB',          tp:'Prishtinë Qendër',    time:'04:30', price:80, vehicle:{type:'minivan',brand:'Ford',model:'Galaxy',color:'Blu e errët'},  options:{luggage:true,smoking:false,music:false,pets:false,ac:true}, notes:'Hapësirë e madhe për bagazhe.' },
+  { fc:'Lausanne',  tc:'Tiranë',    fp:'Lausanne Gare',      tp:'Sheshi Skënderbej',   time:'04:15', price:88, vehicle:{type:'car',brand:'Audi',model:'A4',color:'E bardhë perle'},      options:{luggage:true,smoking:false,music:true, pets:false,ac:true}, notes:'Përmes Italisë, ferry nga Bari.' },
+  { fc:'Frankfurt', tc:'Prishtinë', fp:'Frankfurt Hbf',      tp:'Prishtinë Qendër',    time:'03:45', price:76, vehicle:{type:'car',brand:'Opel',model:'Insignia',color:'Gri'},           options:{luggage:true,smoking:false,music:true, pets:true, ac:true}, notes:'Kafshët e vogla të mirëpritura.' },
+];
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 async function refreshExampleTrips() {
   try {
+    await ensureDemoDrivers(); // garantit le pool complet même sur base prod existante
+
     const { rows: demoUsers } = await q('SELECT id, email FROM users WHERE email = ANY($1)', [DEMO_EMAILS]);
     if (!demoUsers.length) return;
 
-    const byEmail = {};
-    demoUsers.forEach(u => { byEmail[u.email] = u.id; });
     const demoIds = demoUsers.map(u => u.id);
 
     const { rows: existingTrips } = await q('SELECT id FROM trips WHERE driver_id = ANY($1)', [demoIds]);
@@ -350,51 +405,23 @@ async function refreshExampleTrips() {
       }
     }
 
-    const now    = Date.now();
-    const fmtD   = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-    const ex = [
-      {
-        drv: byEmail['arben@demo.com'],
-        fc:'Zürich', tc:'Prishtinë', fp:'Zürich HB', tp:'Prishtinë Qendër',
-        date:fmtD(2),  time:'05:30', seats:4, avail:0, price:80,
-        vehicle:{type:'car',brand:'Mercedes',model:'E-Class',color:'E zezë'},
-        options:{luggage:true,smoking:false,music:true,pets:false,ac:true},
-        notes:'Ndalojmë në Salzburg ~20 min.'
-      },
-      {
-        drv: byEmail['blerina@demo.com'],
-        fc:'München', tc:'Tirana', fp:'München Hbf', tp:'Sheshi Skënderbej',
-        date:fmtD(6),  time:'04:00', seats:4, avail:0, price:75,
-        vehicle:{type:'car',brand:'BMW',model:'5 Series',color:'E bardhë'},
-        options:{luggage:true,smoking:false,music:true,pets:false,ac:true},
-        notes:'Ferry Ancona-Durrës.'
-      },
-      {
-        drv: byEmail['ilir@demo.com'],
-        fc:'Wien', tc:'Shkodër', fp:'Wien Westbahnhof', tp:'Shkodër Qendër',
-        date:fmtD(10), time:'06:00', seats:4, avail:0, price:60,
-        vehicle:{type:'minivan',brand:'VW',model:'Touran',color:'Gri'},
-        options:{luggage:true,smoking:false,music:false,pets:true,ac:true},
-        notes:'Ndalojmë çdo 3 orë.'
-      },
-      {
-        drv: byEmail['vjosa@demo.com'],
-        fc:'Genève', tc:'Shkup', fp:'Genève Cornavin', tp:'Shkup Qendër',
-        date:fmtD(14), time:'05:00', seats:4, avail:0, price:85,
-        vehicle:{type:'car',brand:'Audi',model:'A6',color:'E kaltër metalike'},
-        options:{luggage:true,smoking:false,music:true,pets:false,ac:true},
-        notes:'Rruga e sigurt, me ndalesa të planifikuara.'
-      },
-    ];
+    const now  = Date.now();
+    const fmtD = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 
-    for (const e of ex) {
-      if (!e.drv) continue;
+    // Un conducteur distinct par trajet (tiré aléatoirement) → noms variés.
+    const drivers = shuffle(demoIds);
+    const dayOffsets = shuffle([2, 3, 5, 6, 8, 10, 12, 14, 16, 18]);
+
+    for (let i = 0; i < EXAMPLE_TEMPLATES.length; i++) {
+      const e   = EXAMPLE_TEMPLATES[i];
+      const drv = drivers[i % drivers.length];
+      if (!drv) continue;
       await q(
         'INSERT INTO trips (id,driver_id,from_city,to_city,from_point,to_point,date,time,seats,seats_available,price,vehicle,options,notes,women_only,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)',
-        [uid(), e.drv, e.fc, e.tc, e.fp, e.tp, e.date, e.time, e.seats, e.avail, e.price, JSON.stringify(e.vehicle), JSON.stringify(e.options), e.notes, false, 'active', now]
+        [uid(), drv, e.fc, e.tc, e.fp, e.tp, fmtD(dayOffsets[i] || (i + 2)), e.time, 4, 0, e.price, JSON.stringify(e.vehicle), JSON.stringify(e.options), e.notes, false, 'active', now]
       );
     }
-    console.log('✅  Shembuj udhëtimesh u rifreskuan.');
+    console.log(`✅  ${EXAMPLE_TEMPLATES.length} shembuj udhëtimesh u rifreskuan (${drivers.length} shoferë).`);
   } catch(err) {
     console.error('refreshExampleTrips error:', err.message);
   }

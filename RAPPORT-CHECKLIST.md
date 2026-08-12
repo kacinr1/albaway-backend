@@ -36,6 +36,7 @@ Date : 2026-08-12. `node --check` OK sur tous les fichiers JS modifiés. Injecti
 - **Footer localisé** : `localizeFooter()` + 10 clés `data-i18n` en sq/fr/de/en, appelée à l'init et à chaque `setLang()`.
 - **`legal.html` section sous-traitants** : Resend, Render/PostgreSQL, Stripe avec bases légales SCCs + liens vers leurs politiques.
 - **CTA sticky mobile** + audit alt + correction OG image.
+- **Trajets d'exemple — variété des conducteurs** : pool démo élargi à **20 prénoms albanais variés** (H/F, `DEMO_DRIVERS`), inséré même sur base prod existante (`ensureDemoDrivers()` en upsert `ON CONFLICT`), et **10 trajets d'exemple à conducteurs distincts tirés aléatoirement** à chaque refresh → fini les « Arben ×2 / Blerina ×2 » sur l'accueil. Logique validée (emails/prénoms uniques, 10 distincts/refresh) ; parcours DB au boot Render.
 - `.env.example` (dont `NEXT_PUBLIC_GA_ID`).
 
 ## Reste ouvert (nécessite service externe ou features additionnelles)
