@@ -50,6 +50,22 @@ const SEO = {
   },
 };
 
+// Extrait les paires question/réponse de faq.html pour le schema FAQPage.
+function buildFaqJsonLd(html) {
+  const re = /<button class="faq-q"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="faq-a">([\s\S]*?)<\/div>/g;
+  const strip = (s) => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const items = [];
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const q = strip(m[1]);
+    const a = strip(m[2]);
+    if (q && a) items.push({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } });
+  }
+  if (!items.length) return '';
+  const ld = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: items };
+  return `\n  <script type="application/ld+json">${JSON.stringify(ld)}</script>`;
+}
+
 const _cache = {};
 function readHtml(file) {
   if (!_cache[file]) {
@@ -151,7 +167,8 @@ function inject(html, route, lang) {
     const gaSnippet = ga
       ? `\n  <script>window.__ALBAWAY_GA_ID='${ga}';</script>\n  <script src="/consent.js" defer></script>`
       : '';
-    const block = `\n  <!-- data-albaway-seo -->\n  ${extra}\n  <script type="application/ld+json">${JSON.stringify(orgJsonLd)}</script>${gaSnippet}\n</head>`;
+    const faqLd = route === '/faq.html' ? buildFaqJsonLd(html) : '';
+    const block = `\n  <!-- data-albaway-seo -->\n  ${extra}\n  <script type="application/ld+json">${JSON.stringify(orgJsonLd)}</script>${faqLd}${gaSnippet}\n</head>`;
     out = out.replace(/<\/head>/i, block);
   }
   return out;
