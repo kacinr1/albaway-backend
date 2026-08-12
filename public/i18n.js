@@ -62,6 +62,8 @@ const TRANSLATIONS = {
     auth_reg_btn:'Regjistrohu falas', auth_have:'Ke llogari?', auth_login_link:'Hyr', auth_demo:'Kontet demo',
     rate_driver:'⭐ Vlerëso shoferin', rate_send:'Dërgo vlerësimin', rate_done:'✅ Vlerësimi u dërgua',
     rate_ph:'Koment opsional...',
+    rate_passenger:'⭐ Vlerëso pasagjerin', rate_pax_done:'✅ Vlerësimi u dërgua',
+    rate_pax_ph:'Koment opsional...', rate_pax_what:'Çfarë mendoni? (opsionale)',
     req_title:'Kërkesat', req_accept:'✅ Prano', req_refuse:'❌ Refuzo', req_none:'Nuk ka kërkesa',
     vt_car:'Veturë', vt_minivan:'Minivan', vt_suv:'SUV', vt_bus:'Autobus',
     opt_luggage:'Bagazh', opt_music:'Muzikë', opt_ac:'Klimë', opt_pets:'Kafshe', opt_smoking:'Duhanpirje',
@@ -69,6 +71,10 @@ const TRANSLATIONS = {
     opt_pets_f:'Kafshe shtëpiake', opt_smoking_f:'Duhanpirje',
     footer_tag:'Bashkudhëtim shqiptar — i sigurt, i lirë, i shpejtë.',
     footer_service:'Shërbimi', footer_dest:'Destinacionet', scroll:'Zbrit',
+    footer_faq:'❓ Pyetje të shpeshta (FAQ)', footer_terms:'📋 Termat & Kushtet',
+    footer_privacy:'🔒 Privatësia (GDPR)', footer_safety:'🛡️ Siguria',
+    footer_contact:'📧 Kontakto', footer_copyright:'Pagesat sigurohen nga',
+    footer_all_routes:'🧭 Të gjitha korridoret →',
     per_person:'/ person', cancelled:'Anuluar', trips_lbl:'Udhëtime',
   },
   fr: {
@@ -128,6 +134,8 @@ const TRANSLATIONS = {
     auth_reg_btn:"S'inscrire gratuitement", auth_have:'Déjà un compte ?', auth_login_link:'Se connecter', auth_demo:'Comptes démo',
     rate_driver:'⭐ Évaluer le conducteur', rate_send:"Envoyer l'évaluation", rate_done:'✅ Évaluation envoyée',
     rate_ph:'Commentaire optionnel...',
+    rate_passenger:'⭐ Évaluer le passager', rate_pax_done:'✅ Évaluation envoyée',
+    rate_pax_ph:'Commentaire optionnel...', rate_pax_what:'Votre avis ? (optionnel)',
     req_title:'Demandes', req_accept:'✅ Accepter', req_refuse:'❌ Refuser', req_none:'Aucune demande',
     vt_car:'Voiture', vt_minivan:'Minivan', vt_suv:'SUV', vt_bus:'Bus',
     opt_luggage:'Bagages', opt_music:'Musique', opt_ac:'Climatisation', opt_pets:'Animaux', opt_smoking:'Fumeur',
@@ -135,6 +143,10 @@ const TRANSLATIONS = {
     opt_pets_f:'Animaux de compagnie', opt_smoking_f:'Fumeur',
     footer_tag:'Covoiturage albanais — sûr, abordable, rapide.',
     footer_service:'Service', footer_dest:'Destinations', scroll:'Défiler',
+    footer_faq:'❓ Questions fréquentes (FAQ)', footer_terms:'📋 Conditions générales',
+    footer_privacy:'🔒 Confidentialité (RGPD)', footer_safety:'🛡️ Sécurité',
+    footer_contact:'📧 Nous contacter', footer_copyright:'Paiements sécurisés par',
+    footer_all_routes:'🧭 Tous les corridors →',
     per_person:'/ personne', cancelled:'Annulé', trips_lbl:'Trajets',
   },
   de: {
@@ -194,6 +206,8 @@ const TRANSLATIONS = {
     auth_reg_btn:'Kostenlos registrieren', auth_have:'Haben Sie ein Konto?', auth_login_link:'Anmelden', auth_demo:'Demo-Konten',
     rate_driver:'⭐ Fahrer bewerten', rate_send:'Bewertung senden', rate_done:'✅ Bewertung gesendet',
     rate_ph:'Optionaler Kommentar...',
+    rate_passenger:'⭐ Mitfahrer bewerten', rate_pax_done:'✅ Bewertung gesendet',
+    rate_pax_ph:'Optionaler Kommentar...', rate_pax_what:'Ihre Meinung? (optional)',
     req_title:'Anfragen', req_accept:'✅ Akzeptieren', req_refuse:'❌ Ablehnen', req_none:'Keine Anfragen',
     vt_car:'Auto', vt_minivan:'Minivan', vt_suv:'SUV', vt_bus:'Bus',
     opt_luggage:'Gepäck', opt_music:'Musik', opt_ac:'Klimaanlage', opt_pets:'Haustiere', opt_smoking:'Rauchen',
@@ -201,6 +215,10 @@ const TRANSLATIONS = {
     opt_pets_f:'Haustiere erlaubt', opt_smoking_f:'Rauchen erlaubt',
     footer_tag:'Albanisches Mitfahren — sicher, günstig, schnell.',
     footer_service:'Service', footer_dest:'Reiseziele', scroll:'Scrollen',
+    footer_faq:'❓ Häufige Fragen (FAQ)', footer_terms:'📋 Nutzungsbedingungen',
+    footer_privacy:'🔒 Datenschutz (DSGVO)', footer_safety:'🛡️ Sicherheit',
+    footer_contact:'📧 Kontakt', footer_copyright:'Zahlungen gesichert durch',
+    footer_all_routes:'🧭 Alle Korridore →',
     per_person:'/ Person', cancelled:'Storniert', trips_lbl:'Fahrten',
   },
   en: {
@@ -260,6 +278,8 @@ const TRANSLATIONS = {
     auth_reg_btn:'Register for free', auth_have:'Have an account?', auth_login_link:'Login', auth_demo:'Demo accounts',
     rate_driver:'⭐ Rate driver', rate_send:'Submit rating', rate_done:'✅ Rating submitted',
     rate_ph:'Optional comment...',
+    rate_passenger:'⭐ Rate passenger', rate_pax_done:'✅ Rating submitted',
+    rate_pax_ph:'Optional comment...', rate_pax_what:'Your feedback? (optional)',
     req_title:'Requests', req_accept:'✅ Accept', req_refuse:'❌ Decline', req_none:'No requests',
     vt_car:'Car', vt_minivan:'Minivan', vt_suv:'SUV', vt_bus:'Bus',
     opt_luggage:'Luggage', opt_music:'Music', opt_ac:'A/C', opt_pets:'Pets', opt_smoking:'Smoking',
@@ -267,6 +287,10 @@ const TRANSLATIONS = {
     opt_pets_f:'Pets allowed', opt_smoking_f:'Smoking allowed',
     footer_tag:'Albanian ridesharing — safe, affordable, fast.',
     footer_service:'Service', footer_dest:'Destinations', scroll:'Scroll',
+    footer_faq:'❓ Frequently asked questions (FAQ)', footer_terms:'📋 Terms & Conditions',
+    footer_privacy:'🔒 Privacy (GDPR)', footer_safety:'🛡️ Safety',
+    footer_contact:'📧 Contact us', footer_copyright:'Payments secured by',
+    footer_all_routes:'🧭 All corridors →',
     per_person:'/ person', cancelled:'Cancelled', trips_lbl:'Rides',
   }
 };
@@ -280,6 +304,14 @@ function t(key) {
   return (TRANSLATIONS[_lang] || TRANSLATIONS.sq)[key] || (TRANSLATIONS.sq)[key] || key;
 }
 
+function localizeFooter() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (val) el.textContent = val;
+  });
+}
+
 function setLang(lang) {
   _lang = lang;
   localStorage.setItem('aw_lang', lang);
@@ -287,6 +319,7 @@ function setLang(lang) {
   document.getElementById('lang-flag').textContent = LANG_FLAGS[lang];
   document.getElementById('lang-name').textContent = LANG_NAMES[lang];
   document.getElementById('lang-drop').classList.add('hidden');
+  localizeFooter();
   route();
 }
 

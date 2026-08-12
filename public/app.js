@@ -227,6 +227,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initNavMagic();
   initSocket();
   updateNav();
+  localizeFooter();
 
   const params = Object.fromEntries(new URLSearchParams(location.search));
   if (params.payment === 'success') {
@@ -1031,7 +1032,7 @@ async function loadDriverTab() {
         <div class="my-tc-actions">
           <button class="btn-see-all" onclick="navigate('trip/${t.id}')">Shiko</button>
           ${t.status==='active'?`
-          <button class="btn-manage" onclick="showReqs('${t.id}','${esc(t.from_city)} → ${esc(t.to_city)}')">Kërkesat (${(t.pending_requests||0)+(t.accepted_passengers||0)})</button>
+          <button class="btn-manage" onclick="showReqs('${t.id}','${esc(t.from_city)} → ${esc(t.to_city)}','${esc(t.date||'')}')">Kërkesat (${(t.pending_requests||0)+(t.accepted_passengers||0)})</button>
           <button class="btn-cancel-t" onclick="cancelT('${t.id}')">Anulo</button>`:''}
         </div>
       </div>`).join('');
@@ -1085,12 +1086,13 @@ async function loadPassengerTab() {
     }).join('');
   } catch(e) { p.innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div><h3>${esc(e.message)}</h3></div>`; }
 }
-async function showReqs(tripId, route) {
+async function showReqs(tripId, route, tripDate) {
   const reqs = await apiFetch('/trips/'+tripId+'/requests');
+  const tripIsPast = tripDate ? isPast(tripDate) : false;
   openModalHTML(`
     <button class="modal-close" onclick="closeModalNow()">✕</button>
-    <div class="modal-title">Kërkesat · <span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,.5)">${esc(route)}</span></div>
-    ${!reqs.length?'<div class="empty-state" style="padding:24px"><div class="empty-icon">📭</div><h3>Nuk ka kërkesa</h3></div>':reqs.map(r=>`
+    <div class="modal-title">${t('req_title')} · <span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,.5)">${esc(route)}</span></div>
+    ${!reqs.length?`<div class="empty-state" style="padding:24px"><div class="empty-icon">📭</div><h3>${t('req_none')}</h3></div>`:reqs.map(r=>`
       <div class="req-card">
         <div class="req-av" style="background:${avatarColor(r.passenger?.name||'?')}">${initials_(r.passenger?.name||'?')}</div>
         <div style="flex:1">
@@ -1098,28 +1100,39 @@ async function showReqs(tripId, route) {
           <div style="font-size:.78rem;color:rgba(255,255,255,.4)">⭐${r.passenger?.rating?.toFixed(1)} · ${r.seats} vend(e)</div>
           ${r.message?`<div style="font-size:.8rem;font-style:italic;color:rgba(255,255,255,.4);margin-top:4px">"${esc(r.message)}"</div>`:''}
         </div>
-        <span class="badge ${{accepted:'badge-accepted',refused:'badge-refused',pending:'badge-pending',cancelled:'badge-cancelled'}[r.status]||'badge-pending'}">${{accepted:'✅ Pranuar',refused:'❌ Refuzuar',pending:'⏳ Pritje',cancelled:'🚫 Anuluar'}[r.status]||r.status}</span>
+        <span class="badge ${{accepted:'badge-accepted',refused:'badge-refused',pending:'badge-pending',cancelled:'badge-cancelled'}[r.status]||'badge-pending'}">${t({accepted:'st_accepted',refused:'st_refused',pending:'st_pending',cancelled:'st_cancelled'}[r.status]||'st_pending')}</span>
         ${r.status==='pending'?`<div style="display:flex;gap:6px">
-          <button class="btn-accept" onclick="respBook('${r.id}','accepted','${tripId}','${esc(route)}')">✅ Prano</button>
-          <button class="btn-refuse" onclick="respBook('${r.id}','refused','${tripId}','${esc(route)}')">❌ Refuzo</button>
+          <button class="btn-accept" onclick="respBook('${r.id}','accepted','${tripId}','${esc(route)}','${esc(tripDate||'')}')">✅ ${t('req_accept').replace(/^✅\s*/,'')}</button>
+          <button class="btn-refuse" onclick="respBook('${r.id}','refused','${tripId}','${esc(route)}','${esc(tripDate||'')}')">❌ ${t('req_refuse').replace(/^❌\s*/,'')}</button>
         </div>`:''}
         ${r.status==='accepted' && r.payment_status==='paid' ? `
         <button onclick="openChat('${r.id}','${r.passenger?.id||''}','${esc(r.passenger?.name||'Pasagjer')}')"
           style="margin-top:10px;width:100%;background:linear-gradient(135deg,rgba(0,61,130,.5),rgba(0,61,130,.3));border:1px solid rgba(0,122,255,.35);color:#fff;padding:9px;border-radius:12px;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px">
-          💬 Chato me pasagjerin
+          ${t('chat_pax')}
         </button>` : ''}
         ${r.status==='accepted' && r.payment_status!=='paid' ? `
         <div style="margin-top:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.3);padding:8px;border-radius:9px;font-size:.78rem;text-align:center">
           🔒 Chat disponueshëm pas pagesës së pasagjerit
         </div>` : ''}
+        ${r.status==='accepted' && r.payment_status==='paid' && tripIsPast && !r.rated_by_driver ? `
+        <div style="margin-top:14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:14px">
+          <div style="font-size:.82rem;font-weight:700;color:#fbbf24;margin-bottom:10px">${t('rate_passenger')}</div>
+          <div id="drv-stars-${r.id}" style="display:flex;gap:6px;margin-bottom:10px">
+            ${[1,2,3,4,5].map(s=>`<button onclick="setStar('drv-${r.id}',${s})" id="star-drv-${r.id}-${s}" style="font-size:1.5rem;background:none;color:rgba(255,255,255,.2);transition:all .15s;line-height:1">☆</button>`).join('')}
+          </div>
+          <input id="drv-rc-${r.id}" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#fff;font-size:.82rem;margin-bottom:10px" placeholder="${t('rate_pax_ph')}"/>
+          <div style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:12px">${t('rate_pax_what')}</div>
+          <button onclick="submitRatingDriver('${r.id}')" style="background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.3);color:#fbbf24;padding:7px 16px;border-radius:8px;font-size:.82rem;font-weight:700">${t('rate_send')}</button>
+        </div>` : r.status==='accepted' && r.payment_status==='paid' && tripIsPast && r.rated_by_driver ? `
+        <div style="margin-top:10px;font-size:.8rem;color:rgba(255,255,255,.3)">✅ ${t('rate_pax_done')}</div>` : ''}
       </div>`).join('')}`);
 }
-async function respBook(bid, status, tripId, route) {
+async function respBook(bid, status, tripId, route, tripDate) {
   try {
     await apiFetch('/bookings/'+bid,'PUT',{status});
     toast(status==='accepted'?'✅ Pranuar!':'Refuzuar.', status==='accepted'?'success':'info');
     closeModalNow(); loadDriverTab();
-    if (status==='accepted') showReqs(tripId, route);
+    if (status==='accepted') showReqs(tripId, route, tripDate);
   } catch(e) { toast(e.message,'error'); }
 }
 async function cancelT(id) {
@@ -1535,5 +1548,17 @@ async function submitRating(bid) {
     await apiFetch('/ratings','POST',{booking_id:bid, stars, comment, badges_voted});
     toast('✅ Faleminderit për vlerësimin!','success');
     loadPassengerTab();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function submitRatingDriver(bid) {
+  const key     = 'drv-' + bid;
+  const stars   = _ratingStars[key];
+  const comment = document.getElementById(`drv-rc-${bid}`)?.value?.trim() || '';
+  if (!stars) { toast('Zgjidh numrin e yjeve','error'); return; }
+  try {
+    await apiFetch('/ratings','POST',{booking_id:bid, stars, comment, badges_voted:[]});
+    toast('✅ ' + t('rate_pax_done'),'success');
+    closeModalNow();
+    loadDriverTab();
   } catch(e) { toast(e.message,'error'); }
 }
