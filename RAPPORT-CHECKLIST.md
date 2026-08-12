@@ -18,7 +18,7 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 | 9 | Images de partage RS | ✅ | Route serveur `/trip/:id` : OG/Twitter **dynamiques par trajet** (titre + « Genève → Pristina · date · prix · places ») en version textuelle riche. OG image corrigée (→ `/logo.png`). **Reco** : créer une vraie image 1200×630 de marque (voire OG image générée par trajet). |
 | 10 | FAQ + schema | ✅ | `faq.html` + JSON-LD `FAQPage` (16 Q/R) injecté côté serveur par `seo-inject.js`. |
 | 11 | 404 personnalisée | ✅ | `404.html` servie avec statut HTTP 404 (fallback Express). |
-| 12 | Carte + itinéraire | ⚠️ | **Reco** : afficher l'itinéraire du corridor (Leaflet/OSM) sur les pages trajets. |
+| 12 | Carte + itinéraire | ✅ | **Carte Leaflet** sur chaque page corridor `/trajets/:slug` : tuiles CartoDB dark (thème), tracé du corridor + 2 marqueurs (coords `CITY_COORDS`), zoom, attribution OSM/CARTO, légende « itinéraire indicatif » localisée 4 langues. Leaflet chargé en différé (CDN, SRI). Testé Playwright (init + 12 tuiles + 3 tracés, 0 erreur). |
 | 13 | CTA sans scroller | ✅ | Module de recherche (départ/arrivée/date) dans le hero, visible sans scroll sur mobile (vérifié 390×780). |
 | 14 | Alt text | ✅ | Audit fait : 1 seul `<img>` sans alt (aperçu document) corrigé ; photos de villes = backgrounds CSS décoratifs (pas d'alt requis). |
 | 15 | Temps de réponse (Render) | ✅/⚠️ | `/health` en place. Webhook Stripe **idempotent vérifié** (garde `payment_status !== 'paid'`). **Reco** : ping externe (cron-job.org / UptimeRobot) toutes les 10 min sur `/health` pour éviter les cold starts ; **passer au tier payant Render avant la haute saison** (cold start pendant un paiement = panier abandonné). |
@@ -38,7 +38,7 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 ## Reste ouvert (nécessite service externe ou features additionnelles)
 1. **Keep-alive Render** : cron externe (cron-job.org / UptimeRobot) sur `/health` toutes les 10 min + bascule tier payant avant la saison (cold start pendant paiement = risque).
 2. **Vraie image OG 1200×630** de marque (le partage utilise `/logo.png` en attendant) — idéalement OG image générée par trajet.
-3. **Carte itinéraire** (Leaflet/OSM) sur les pages trajets (item 12).
+3. ~~**Carte itinéraire** (Leaflet/OSM)~~ ✅ **FAIT** — carte Leaflet + tracé du corridor sur `/trajets/:slug` (item 12).
 4. ~~**Pages corridors** indexables~~ ✅ **FAIT** — `corridors.js` : **18 pages** `/trajets/:slug` (9 corridors × 2 sens, Suisse ⇄ Kosovo/Albanie/Macédoine) SSR autonomes, 4 langues, hreflang, JSON-LD `Trip`+`BreadcrumbList`, CTA vers recherche pré-remplie (`/search?from=&to=`), page index `/trajets`, maillage interne (retour + autres corridors) + liens footer accueil + sitemap. Testé Playwright (H1/title/canonical/JSON-LD/CTA, 4 langues, mobile).
 5. **UI de notation côté conducteur** (backend déjà prêt) + footer localisé par langue (item 17).
 6. Compléter le texte de `legal.html` (sous-traitants Resend + hébergeur DB + transferts hors UE).

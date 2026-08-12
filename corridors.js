@@ -32,6 +32,19 @@ const CITY_SLUG = {
   'Prishtinë': 'pristina', 'Tiranë': 'tirana', 'Shkodër': 'shkoder', 'Shkup': 'skopje',
 };
 
+// Coordonnées [lat, lon] pour tracer l'itinéraire indicatif du corridor (Leaflet).
+const CITY_COORDS = {
+  'Genève':    [46.2044, 6.1432],
+  'Zürich':    [47.3769, 8.5417],
+  'Lausanne':  [46.5197, 6.6323],
+  'Bern':      [46.9480, 7.4474],
+  'Bâle':      [47.5596, 7.5886],
+  'Prishtinë': [42.6629, 21.1655],
+  'Tiranë':    [41.3275, 19.8187],
+  'Shkodër':   [42.0693, 19.5033],
+  'Shkup':     [41.9981, 21.4254],
+};
+
 function buildCorridors() {
   const list = [];
   for (const c of BASE) {
@@ -63,6 +76,7 @@ const T = {
     stepsTitle: 'Si funksionon', steps: ['Kërko udhëtimin ' , 'Rezervo & paguaj i sigurt', 'Merr kontaktet e shoferit'],
     stepsD: (c) => [`Shiko udhëtimet e disponueshme ${c.from} → ${c.to}.`, 'Pagesa e sigurt me Stripe; kontaktet zbulohen pas pagesës.', 'Koordinohu me shoferin për orarin dhe vendtakimin.'],
     cta: (c) => `Kërko ${c.from} → ${c.to}`,
+    mapCaption: 'Itinerar indikativ i korridorit',
     reverse: (c) => `Udhëtim në kah të kundërt: ${c.to} → ${c.from}`,
     otherTitle: 'Korridore të tjera popullore',
     allTrips: 'Të gjitha korridoret',
@@ -80,6 +94,7 @@ const T = {
     stepsTitle: 'Comment ça marche', steps: ['Cherchez le trajet', 'Réservez & payez en sécurité', 'Recevez les contacts du conducteur'],
     stepsD: (c) => [`Consultez les trajets ${c.from} → ${c.to} disponibles.`, 'Paiement sécurisé Stripe ; les contacts sont révélés après paiement.', 'Coordonnez l’horaire et le point de rendez-vous avec le conducteur.'],
     cta: (c) => `Chercher ${c.from} → ${c.to}`,
+    mapCaption: 'Itinéraire indicatif du corridor',
     reverse: (c) => `Trajet dans l’autre sens : ${c.to} → ${c.from}`,
     otherTitle: 'Autres corridors populaires',
     allTrips: 'Tous les corridors',
@@ -97,6 +112,7 @@ const T = {
     stepsTitle: 'So funktioniert’s', steps: ['Fahrt suchen', 'Sicher buchen & zahlen', 'Fahrerkontakt erhalten'],
     stepsD: (c) => [`Verfügbare Fahrten ${c.from} → ${c.to} ansehen.`, 'Sichere Stripe-Zahlung; Kontakte werden nach der Zahlung freigegeben.', 'Zeit und Treffpunkt mit dem Fahrer abstimmen.'],
     cta: (c) => `${c.from} → ${c.to} suchen`,
+    mapCaption: 'Indikative Streckenführung',
     reverse: (c) => `Fahrt in Gegenrichtung: ${c.to} → ${c.from}`,
     otherTitle: 'Weitere beliebte Strecken',
     allTrips: 'Alle Strecken',
@@ -114,6 +130,7 @@ const T = {
     stepsTitle: 'How it works', steps: ['Search the trip', 'Book & pay securely', 'Get the driver’s contact'],
     stepsD: (c) => [`Browse available ${c.from} → ${c.to} trips.`, 'Secure Stripe payment; contacts are revealed after payment.', 'Coordinate time and meeting point with the driver.'],
     cta: (c) => `Search ${c.from} → ${c.to}`,
+    mapCaption: 'Indicative corridor route',
     reverse: (c) => `Trip the other way: ${c.to} → ${c.from}`,
     otherTitle: 'Other popular corridors',
     allTrips: 'All corridors',
@@ -139,7 +156,7 @@ function detectLang(req) {
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const searchHref = (c) => `/search?from=${encodeURIComponent(c.from)}&to=${encodeURIComponent(c.to)}`;
 
-function head(lang, url, title, desc, jsonLd) {
+function head(lang, url, title, desc, jsonLd, extraHead = '') {
   const alternates = LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${url}?lang=${l}"/>`).join('\n  ')
     + `\n  <link rel="alternate" hreflang="x-default" href="${url}"/>`;
   const ga = process.env.NEXT_PUBLIC_GA_ID || process.env.GA_ID || '';
@@ -196,9 +213,17 @@ function head(lang, url, title, desc, jsonLd) {
     .chip:hover{border-color:var(--red);color:#fff}
     footer{border-top:1px solid #1e2230;margin-top:40px;padding:26px 0;color:#8b91a3;font-size:.85rem;display:flex;flex-wrap:wrap;gap:16px}
     footer a:hover{color:#fff}
+    .map-wrap{margin:22px 0 6px}
+    #corridor-map{height:320px;border-radius:16px;overflow:hidden;border:1px solid #1e2230;background:#141824}
+    .map-cap{font-size:.78rem;color:#8b91a3;margin-top:8px}
+    .leaflet-popup-content{font-family:inherit}
   </style>
+  ${extraHead}
 </head>`;
 }
+
+// Feuille de style Leaflet (chargée uniquement sur les pages avec carte).
+const LEAFLET_CSS = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>';
 
 function renderCorridor(c, lang) {
   const t = T[lang];
@@ -222,7 +247,36 @@ function renderCorridor(c, lang) {
   };
 
   const stepsD = t.stepsD(c);
-  return head(lang, url, t.title(c), t.desc(c), [tripLd, breadLd]) + `
+  const a = CITY_COORDS[c.from], b = CITY_COORDS[c.to];
+  const mapScript = (a && b) ? `
+  <script>
+  (function(){
+    function init(){
+      var el=document.getElementById('corridor-map');
+      if(!el||!window.L) return;
+      var a=[${a[0]},${a[1]}], b=[${b[0]},${b[1]}];
+      var map=L.map(el,{scrollWheelZoom:false});
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+      L.polyline([a,b],{color:'#E41E20',weight:3,opacity:.9,dashArray:'6 8'}).addTo(map);
+      L.circleMarker(a,{radius:8,color:'#fff',weight:2,fillColor:'#E41E20',fillOpacity:1}).addTo(map).bindPopup(${JSON.stringify(c.from)});
+      L.circleMarker(b,{radius:8,color:'#fff',weight:2,fillColor:'#E41E20',fillOpacity:1}).addTo(map).bindPopup(${JSON.stringify(c.to)});
+      map.fitBounds(L.latLngBounds([a,b]).pad(0.3));
+    }
+    var s=document.createElement('script');
+    s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+    s.crossOrigin='';
+    s.onload=init;
+    document.body.appendChild(s);
+  })();
+  </script>` : '';
+  const mapBlock = (a && b) ? `
+    <div class="map-wrap">
+      <div id="corridor-map"></div>
+      <div class="map-cap">🗺️ ${esc(t.mapCaption)}</div>
+    </div>` : '';
+
+  return head(lang, url, t.title(c), t.desc(c), [tripLd, breadLd], LEAFLET_CSS) + `
 <body>
   <div class="wrap">
     <header>
@@ -238,7 +292,7 @@ function renderCorridor(c, lang) {
       <div class="fact"><div class="k">${esc(t.fTime)}</div><div class="v">${t.approx(c.h + ' h')}</div></div>
       <div class="fact"><div class="k">${esc(t.fPrice)}</div><div class="v">${esc(c.price)} €</div></div>
     </div>
-
+${mapBlock}
     <a class="cta" href="${searchHref(c)}">🔍 ${esc(t.cta(c))}</a>
 
     <h2>${esc(t.stepsTitle)}</h2>
@@ -257,7 +311,7 @@ function renderCorridor(c, lang) {
       <a href="/faq.html?lang=${lang}">${esc(t.faq)}</a>
       <a href="/?lang=${lang}">AlbaWay</a>
     </footer>
-  </div>
+  </div>${mapScript}
 </body>
 </html>`;
 }
