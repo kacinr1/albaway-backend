@@ -106,6 +106,10 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+// SEO SSR : injecte titres/meta/OG/hreflang/JSON-LD/GA par route et langue
+// (doit passer AVANT express.static pour intercepter les pages HTML).
+app.use(require('./seo-inject').middleware);
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function uid() { return crypto.randomUUID(); }
