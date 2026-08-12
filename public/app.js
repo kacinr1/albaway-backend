@@ -337,8 +337,8 @@ async function apiLogin(email, password) {
   toast('Mirë se erdhe, '+me.name+'! 🇦🇱','success');
   navigate('home');
 }
-async function apiRegister(name,email,password,phone,gender) {
-  const r = await apiFetch('/register','POST',{name,email,password,phone,gender});
+async function apiRegister(name,email,password,phone,gender,acceptTerms) {
+  const r = await apiFetch('/register','POST',{name,email,password,phone,gender,acceptTerms,consentVersion:'2026-08-12'});
   token=r.token; me=r.user;
   localStorage.setItem('bbs_token',token);
   localStorage.setItem('bbs_user',JSON.stringify(me));
@@ -1095,6 +1095,10 @@ function openModal(type) {
         </select>
       </div>
       <div class="form-group"><label class="form-label">Fjalëkalimi *</label><input class="form-input" id="rg-p" type="password" placeholder="••••••••"/></div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:.8rem;color:rgba(255,255,255,.7);margin:4px 0 14px;cursor:pointer">
+        <input type="checkbox" id="rg-consent" style="margin-top:3px;accent-color:#E41E20"/>
+        <span>Pranoj <a href="/legal.html" target="_blank" style="color:#E41E20;text-decoration:underline">Kushtet e përdorimit dhe Politikën e privatësisë</a> *</span>
+      </label>
       <button class="modal-submit" onclick="doRegister()">Regjistrohu falas</button>
       <p class="modal-switch">Ke llogari? <a onclick="openModal('login')">Hyr</a></p>`);
   }
@@ -1122,8 +1126,13 @@ async function doRegister() {
   const n=document.getElementById('rg-n')?.value?.trim(), e=document.getElementById('rg-e')?.value?.trim(),
         p=document.getElementById('rg-p')?.value, ph=document.getElementById('rg-ph')?.value?.trim(),
         g=document.getElementById('rg-g')?.value||'';
+  const consent=document.getElementById('rg-consent')?.checked;
   if (!n||!e||!p) { toast('Plotëso fushat e detyrueshme','error'); return; }
-  try { await apiRegister(n,e,p,ph,g); } catch(err) { toast(err.message,'error'); }
+  if (!consent) { toast('Duhet të pranosh Kushtet dhe Privatësinë','error'); return; }
+  try {
+    await apiRegister(n,e,p,ph,g,consent);
+    if (window.albawayTrack) albawayTrack('sign_up');
+  } catch(err) { toast(err.message,'error'); }
 }
 
 // ─── SEARCH HELPERS ────────────────────────────────────────────────────────

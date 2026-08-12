@@ -215,6 +215,10 @@ async function initDb() {
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_doc TEXT DEFAULT ''`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at BIGINT`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS badges JSONB DEFAULT '[]'`);
+  // Consentement CGU + confidentialité à l'inscription (RGPD/LPD) — loggé avec version + horodatage
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_terms BOOLEAN DEFAULT FALSE`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_at BIGINT`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_version TEXT`);
   await q(`ALTER TABLE ratings ADD COLUMN IF NOT EXISTS badges_voted JSONB DEFAULT '[]'`);
   await q(`ALTER TABLE trips ADD COLUMN IF NOT EXISTS women_only BOOLEAN DEFAULT FALSE`);
   await q(`CREATE TABLE IF NOT EXISTS trips (
@@ -526,22 +530,25 @@ app.get('/api/ratings/:user_id', async (req, res) => {
 // ─── AUTH API ─────────────────────────────────────────────────────────────
 app.post('/api/register', authLimiter, async (req, res) => {
   try {
-    const { name, email, password, phone, gender } = req.body;
+    const { name, email, password, phone, gender, acceptTerms, consentVersion } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: 'Plotëso të gjitha fushat' });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return res.status(400).json({ error: 'Format i email-it i pavlefshëm' });
+    if (!acceptTerms)
+      return res.status(400).json({ error: 'Duhet të pranosh Kushtet dhe Privatësinë' });
 
     const { rows: existing } = await q('SELECT id FROM users WHERE email=$1', [email]);
     if (existing.length) return res.status(400).json({ error: 'Ky email është i regjistruar' });
 
+    const now = Date.now();
     const user = {
       id: uid(), name, email, password: await hashPassword(password),
-      phone: phone || '', gender: gender || '', rating: 5.0, trips_count: 0, created_at: Date.now()
+      phone: phone || '', gender: gender || '', rating: 5.0, trips_count: 0, created_at: now
     };
     await q(
-      'INSERT INTO users (id,name,email,password,phone,gender,rating,trips_count,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-      [user.id, user.name, user.email, user.password, user.phone, user.gender, user.rating, user.trips_count, user.created_at]
+      'INSERT INTO users (id,name,email,password,phone,gender,rating,trips_count,created_at,consent_terms,consent_at,consent_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
+      [user.id, user.name, user.email, user.password, user.phone, user.gender, user.rating, user.trips_count, user.created_at, true, now, String(consentVersion || '2026-08-12')]
     );
     const token = await createToken(user.id);
     const { password: _, ...safe } = user;
