@@ -258,9 +258,32 @@ function route() {
     publish:   () => renderPublish(),
     dashboard: () => renderDashboard(),
   };
+  updateStickyCTA(path);
   if (path.startsWith('trip/'))  { renderTripDetail(path.slice(5)); return; }
   if (path.startsWith('reset'))  { renderReset(params.token || ''); return; }
   (pages[path] || renderHome)();
+}
+
+// ─── CTA STICKY MOBILE ─────────────────────────────────────────────────────
+// Visible < 768px sur l'accueil et la recherche ; masqué dans les flux
+// réservation / paiement / trajet / dashboard.
+function updateStickyCTA(path) {
+  let bar = document.getElementById('sticky-cta');
+  if (!bar) {
+    if (!document.getElementById('sticky-cta-style')) {
+      const st = document.createElement('style');
+      st.id = 'sticky-cta-style';
+      st.textContent = '#sticky-cta{position:fixed;left:12px;right:12px;bottom:14px;z-index:900;display:none;align-items:center;justify-content:center;gap:8px;background:#E41E20;color:#fff;font-weight:700;font-size:.95rem;padding:14px;border-radius:16px;box-shadow:0 10px 30px rgba(228,30,32,.35);cursor:pointer}@media(max-width:767px){#sticky-cta.show{display:flex}}';
+      document.head.appendChild(st);
+    }
+    bar = document.createElement('div');
+    bar.id = 'sticky-cta';
+    bar.onclick = () => navigate('search');
+    document.body.appendChild(bar);
+  }
+  bar.textContent = (typeof t === 'function' ? t('cta_search') : '🔍 Kërko udhëtim');
+  const show = path === 'home' || path === 'search';
+  bar.classList.toggle('show', show);
 }
 
 // ─── PUSH NOTIFICATIONS ────────────────────────────────────────────────────
@@ -939,7 +962,7 @@ async function doVerifyUpload(input) {
   reader.onload = async e => {
     const b64 = e.target.result;
     prev.innerHTML = `
-      <img src="${b64}" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover;margin-bottom:10px"/>
+      <img src="${b64}" alt="Aperçu du document de vérification téléversé" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover;margin-bottom:10px"/>
       <button class="btn-publish" style="width:100%;padding:12px;margin:0" onclick="doVerifySubmit('${b64.replace(/'/g,"\\'")}')">📤 Dërgo për verifikim</button>`;
   };
   reader.readAsDataURL(file);
