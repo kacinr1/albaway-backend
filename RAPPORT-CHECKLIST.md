@@ -9,11 +9,11 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 |---|------|--------|--------|
 | 1 | Titres uniques (SSR) | ✅ | Middleware `seo-inject.js` : titres par route (/, /about, /faq, /legal) × 4 langues. |
 | 2 | Page de remerciement | ✅ | Écran de confirmation paiement (temps réel + emails) + event GA4 `purchase` déclenché. **Reco** : ajouter la valeur (commission) au `purchase` côté serveur. |
-| 3 | robots.txt + sitemap.xml | ✅ | Présents (`/api`, `/dashboard` bloqués ; `/admin` en `X-Robots-Tag: noindex`). **Reco** : ajouter les pages corridors au sitemap si créées. |
+| 3 | robots.txt + sitemap.xml | ✅ | robots présent (`/api`, `/dashboard` bloqués ; `/admin` en `X-Robots-Tag: noindex`). **Sitemap désormais dynamique** (route Express avant `express.static`) : pages statiques + **18 pages corridors** + `/trajets`. |
 | 4 | Avis clients | ✅ | Notation **bidirectionnelle** (passager↔conducteur) + **contrainte unique** (from_id, booking_id) + moyenne recalculée depuis la table. **Nb d'avis affiché sur les cartes de trajet**. Endpoint public `/api/reviews/recent` + **section témoignages sur l'accueil** (4 langues). **Reco** : ajouter l'UI de notation côté conducteur (backend prêt). |
 | 5 | CTA sticky mobile | ✅ | Barre sticky « Kërko udhëtim » < 768px sur accueil + recherche, masquée en réservation/paiement/trajet/dashboard. Vérifiée à l'écran. |
 | 6 | Meta descriptions (SSR) | ✅ | Uniques par route × 4 langues via le middleware. |
-| 7 | Fil d'Ariane | N/A | Pertinent seulement si les pages corridors (item 3) sont créées. |
+| 7 | Fil d'Ariane | ✅ | Fil d'Ariane (Accueil › Trajets › corridor) + JSON-LD `BreadcrumbList` sur chaque page corridor. |
 | 8 | Confidentialité + CGU | ✅ | `legal.html` couvre CGU (Kushtet), confidentialité, GDPR et Stripe. **Checkbox consentement CGU+confidentialité à l'inscription ajoutée + loggée en DB** (`consent_terms`, `consent_at`, `consent_version` ; endpoint rejette l'inscription sans consentement). **Reco** : citer explicitement Resend + hébergeur DB + transferts hors UE dans le texte de `legal.html`. |
 | 9 | Images de partage RS | ✅ | Route serveur `/trip/:id` : OG/Twitter **dynamiques par trajet** (titre + « Genève → Pristina · date · prix · places ») en version textuelle riche. OG image corrigée (→ `/logo.png`). **Reco** : créer une vraie image 1200×630 de marque (voire OG image générée par trajet). |
 | 10 | FAQ + schema | ✅ | `faq.html` + JSON-LD `FAQPage` (16 Q/R) injecté côté serveur par `seo-inject.js`. |
@@ -39,7 +39,7 @@ Date : 2026-08-12. `node --check` OK sur les fichiers modifiés. Injection SEO t
 1. **Keep-alive Render** : cron externe (cron-job.org / UptimeRobot) sur `/health` toutes les 10 min + bascule tier payant avant la saison (cold start pendant paiement = risque).
 2. **Vraie image OG 1200×630** de marque (le partage utilise `/logo.png` en attendant) — idéalement OG image générée par trajet.
 3. **Carte itinéraire** (Leaflet/OSM) sur les pages trajets (item 12).
-4. **Pages corridors** indexables (`/trajets/geneve-pristina`…) — fort levier SEO diaspora (item 3).
+4. ~~**Pages corridors** indexables~~ ✅ **FAIT** — `corridors.js` : **18 pages** `/trajets/:slug` (9 corridors × 2 sens, Suisse ⇄ Kosovo/Albanie/Macédoine) SSR autonomes, 4 langues, hreflang, JSON-LD `Trip`+`BreadcrumbList`, CTA vers recherche pré-remplie (`/search?from=&to=`), page index `/trajets`, maillage interne (retour + autres corridors) + liens footer accueil + sitemap. Testé Playwright (H1/title/canonical/JSON-LD/CTA, 4 langues, mobile).
 5. **UI de notation côté conducteur** (backend déjà prêt) + footer localisé par langue (item 17).
 6. Compléter le texte de `legal.html` (sous-traitants Resend + hébergeur DB + transferts hors UE).
 

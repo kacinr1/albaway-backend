@@ -110,6 +110,30 @@ app.get('/admin', (req, res) => {
 // (doit passer AVANT express.static pour intercepter les pages HTML).
 app.use(require('./seo-inject').middleware);
 
+// Pages corridors indexables (/trajets, /trajets/:slug) — SSR autonome.
+const corridors = require('./corridors');
+corridors.register(app);
+
+// Sitemap dynamique (pages statiques + corridors) — AVANT express.static pour
+// primer sur public/sitemap.xml.
+app.get('/sitemap.xml', (_req, res) => {
+  const staticPages = [
+    { loc: 'https://albaway.ch/', freq: 'daily', pri: '1.0' },
+    { loc: 'https://albaway.ch/trajets', freq: 'weekly', pri: '0.8' },
+    { loc: 'https://albaway.ch/about.html', freq: 'monthly', pri: '0.7' },
+    { loc: 'https://albaway.ch/faq.html', freq: 'monthly', pri: '0.6' },
+    { loc: 'https://albaway.ch/legal.html', freq: 'monthly', pri: '0.3' },
+  ];
+  const urls = [
+    ...staticPages.map((p) => `  <url>\n    <loc>${p.loc}</loc>\n    <changefreq>${p.freq}</changefreq>\n    <priority>${p.pri}</priority>\n  </url>`),
+    ...corridors.sitemapUrls().filter((u) => u !== 'https://albaway.ch/trajets').map(
+      (u) => `  <url>\n    <loc>${u}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`
+    ),
+  ].join('\n');
+  res.set('Content-Type', 'application/xml; charset=utf-8')
+     .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function uid() { return crypto.randomUUID(); }
