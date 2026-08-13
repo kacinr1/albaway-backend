@@ -1,0 +1,38 @@
+name: keep-alive
+
+# Ping /health toutes les ~10 min pour éviter que Render (free tier) mette
+# l'instance en veille — un cold start pendant un paiement = panier abandonné.
+# /health interroge aussi la DB → garde Supabase (free tier) au chaud.
+# S'active automatiquement une fois ce fichier sur la branche par défaut.
+# NB : le cron GitHub Actions peut être décalé de quelques minutes en cas de charge,
+# et les workflows planifiés se mettent en pause après 60 j sans activité sur le repo.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+# Un seul run à la fois ; on annule les anciens s'ils s'empilent.
+concurrency:
+  group: keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health (tolérant au cold start Render)
+        run: |
+          echo "Ping https://albaway.ch/health"
+          # --retry couvre le réveil de l'instance (jusqu'à ~50s sur free tier).
+          code=$(curl -sS -o /tmp/health.json -w '%{http_code}' \
+            --max-time 90 --retry 4 --retry-delay 20 --retry-all-errors \
+            https://albaway.ch/health) || true
+          echo "HTTP $code"
+          cat /tmp/health.json 2>/dev/null || true
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::/health a renvoyé $code (site ou DB indisponible)"
+            exit 1
+          fi
