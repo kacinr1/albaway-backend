@@ -1312,7 +1312,7 @@ app.get('/trip/:id', async (req, res, next) => {
       .replace(/<meta\s+property="og:title"[^>]*>/i, `<meta property="og:title" content="${q2(title)}"/>`)
       .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${q2(desc)}"/>`)
       .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${url}"/>`)
-      .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1https://albaway.ch/logo.png$2`)
+      .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1https://albaway.ch/og-image.png$2`)
       .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${q2(title)}"/>`)
       .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${q2(desc)}"/>`)
       .replace(/<\/head>/i, `  <script type="application/ld+json">${JSON.stringify(tripLd)}</script>\n</head>`);

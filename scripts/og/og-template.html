@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="utf-8"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+    color: #fff;
+    position: relative;
+    background:
+      radial-gradient(120% 140% at 18% 12%, #F0342E 0%, #C60E12 42%, #8C0000 78%, #5E0000 100%);
+  }
+  /* léger grain / vignette pour la profondeur */
+  .vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(90% 120% at 80% 100%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
+  }
+  .frame {
+    position: absolute; inset: 26px;
+    border: 1.5px solid rgba(255,255,255,0.16);
+    border-radius: 26px;
+  }
+  .pad { position: absolute; inset: 26px; padding: 62px 70px; display: flex; flex-direction: column; }
+
+  /* Barre de marque */
+  .brand { display: flex; align-items: center; gap: 20px; }
+  .mark { width: 76px; height: 76px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.30)); }
+  .word { font-size: 46px; font-weight: 800; letter-spacing: -0.5px; }
+  .word b { color: #fff; }
+  .word span { color: #FFD9D8; }
+
+  /* Titre */
+  .headline {
+    margin-top: 50px;
+    font-size: 60px; line-height: 1.05; font-weight: 800; letter-spacing: -1px;
+    text-shadow: 0 3px 16px rgba(0,0,0,0.28);
+    max-width: 900px;
+  }
+  .sub {
+    margin-top: 24px;
+    font-size: 29px; font-weight: 600; color: #FFE3E2; letter-spacing: 0.2px;
+  }
+  .sub .arrow { color: #fff; margin: 0 14px; font-weight: 800; }
+
+  /* Route graphique bas (bande dédiée, sous le texte) */
+  .route { position: absolute; left: 70px; right: 70px; bottom: 150px; height: 70px; }
+  .cities { position: absolute; left: 70px; right: 70px; bottom: 116px;
+            display: flex; justify-content: space-between; font-size: 22px; font-weight: 700; color: #FFEAEA; }
+
+  /* Pied */
+  .foot { position: absolute; left: 70px; right: 70px; bottom: 48px;
+          display: flex; align-items: center; justify-content: space-between; }
+  .url { font-size: 30px; font-weight: 800; letter-spacing: 0.3px; }
+  .tagline { font-size: 20px; font-weight: 600; color: #FFC9C7; }
+</style>
+</head>
+<body spellcheck="false">
+  <div class="vignette"></div>
+  <div class="frame"></div>
+  <div class="pad">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="32" r="3.8" stroke="white" stroke-width="2.2" fill="none"/>
+        <circle cx="12" cy="32" r="1.3" fill="white"/>
+        <path d="M12 28.2 Q20 13 31 21.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-dasharray="3.2 2.6" fill="none" opacity="0.8"/>
+        <path d="M31 7.5C27.5 7.5 24.5 10.5 24.5 14C24.5 18.5 31 25 31 25C31 25 37.5 18.5 37.5 14C37.5 10.5 34.5 7.5 31 7.5Z" fill="white"/>
+        <circle cx="31" cy="14" r="2.8" fill="#C0000A"/>
+      </svg>
+      <div class="word"><b>Alba</b><span>Way</span></div>
+    </div>
+
+    <div class="headline">Udhëto bashkë me<br/>diasporën shqiptare</div>
+    <div class="sub">Zvicër · Gjermani · Austri <span class="arrow">→</span> Kosovë · Shqipëri · Maqedoni</div>
+  </div>
+
+  <!-- Ligne de trajet Europe → Balkans -->
+  <svg class="route" viewBox="0 0 1060 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="52" r="10" stroke="white" stroke-width="4" fill="none"/>
+    <circle cx="22" cy="52" r="3.6" fill="white"/>
+    <path d="M36 48 C 340 14, 720 12, 1015 34" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="10 9" fill="none" opacity="0.85"/>
+    <path d="M1038 8 C1025 8 1015 18 1015 30 C1015 47 1038 68 1038 68 C1038 68 1061 47 1061 30 C1061 18 1051 8 1038 8Z" fill="white"/>
+    <circle cx="1038" cy="30" r="8.5" fill="#C0000A"/>
+  </svg>
+  <div class="cities">
+    <span>Genève · Zürich · Bern</span>
+    <span>Prishtinë · Tiranë · Shkup</span>
+  </div>
+
+  <div class="foot">
+    <div class="url">albaway.ch</div>
+    <div class="tagline">Bashkudhëtim · Covoiturage · Mitfahrgelegenheit</div>
+  </div>
+</body>
+</html>

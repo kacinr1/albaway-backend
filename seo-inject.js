@@ -118,12 +118,14 @@ function buildHead(route, lang) {
   <meta property="og:url" content="${url}"/>
   <meta property="og:title" content="${esc(s.t)}"/>
   <meta property="og:description" content="${esc(s.d)}"/>
-  <meta property="og:image" content="${SITE}/logo.png"/>
+  <meta property="og:image" content="${SITE}/og-image.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
   <meta property="og:locale" content="${OG_LOCALE[lang]}"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="${esc(s.t)}"/>
   <meta name="twitter:description" content="${esc(s.d)}"/>
-  <meta name="twitter:image" content="${SITE}/logo.png"/>
+  <meta name="twitter:image" content="${SITE}/og-image.png"/>
   <script type="application/ld+json">${JSON.stringify(orgJsonLd)}</script>${gaSnippet}`;
 }
 
@@ -146,9 +148,9 @@ function inject(html, route, lang) {
   out = out.replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(s.d)}"/>`);
   out = out.replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${url}"/>`);
   out = out.replace(/<meta\s+property="og:locale"[^>]*>/i, `<meta property="og:locale" content="${OG_LOCALE[lang]}"/>`);
-  // og-image.png est absente → on pointe vers le logo existant (voir rapport : créer une vraie image 1200×630)
-  out = out.replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${SITE}/logo.png$2`);
-  out = out.replace(/(<meta\s+name="twitter:image"\s+content=")[^"]*(")/i, `$1${SITE}/logo.png$2`);
+  // Image OG de marque 1200×630 (public/og-image.png)
+  out = out.replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${SITE}/og-image.png$2`);
+  out = out.replace(/(<meta\s+name="twitter:image"\s+content=")[^"]*(")/i, `$1${SITE}/og-image.png$2`);
   // 4) <html lang="..">
   out = out.replace(/<html[^>]*lang="[^"]*"/i, `<html lang="${lang}"`);
 
