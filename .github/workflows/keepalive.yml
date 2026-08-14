@@ -24,11 +24,12 @@ jobs:
     steps:
       - name: Ping /health (tolérant au cold start Render)
         run: |
-          echo "Ping https://albaway.ch/health"
+          echo "Ping https://www.albaway.ch/health"
           # --retry couvre le réveil de l'instance (jusqu'à ~50s sur free tier).
-          code=$(curl -sS -o /tmp/health.json -w '%{http_code}' \
+          # -L suit les redirections (albaway.ch -> www.albaway.ch renvoie un 308).
+          code=$(curl -sSL -o /tmp/health.json -w '%{http_code}' \
             --max-time 90 --retry 4 --retry-delay 20 --retry-all-errors \
-            https://albaway.ch/health) || true
+            https://www.albaway.ch/health) || true
           echo "HTTP $code"
           cat /tmp/health.json 2>/dev/null || true
           echo
